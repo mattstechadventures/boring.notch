@@ -1214,8 +1214,8 @@ final class ClaudeCodeManager: ObservableObject {
     }
 
     /// AppleScript-driven: select the Terminal.app tab whose tty matches and bring
-    /// its window forward. Triggers the system AppleEvents permission prompt the
-    /// first time it runs against Terminal.app.
+    /// its window forward. Requires "com.apple.Terminal" in the
+    /// com.apple.security.temporary-exception.apple-events entitlement array.
     private func focusTerminalTab(tty: String) {
         let escaped = tty.replacingOccurrences(of: "\"", with: "\\\"")
         let script = """
@@ -1233,12 +1233,7 @@ final class ClaudeCodeManager: ObservableObject {
         end tell
         """
         var error: NSDictionary?
-        if let appleScript = NSAppleScript(source: script) {
-            appleScript.executeAndReturnError(&error)
-            if let error = error {
-                print("[ClaudeCode] Terminal-focus AppleScript error: \(error)")
-            }
-        }
+        NSAppleScript(source: script)?.executeAndReturnError(&error)
     }
 
     // MARK: - Notifications
