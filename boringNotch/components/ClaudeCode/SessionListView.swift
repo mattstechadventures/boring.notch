@@ -36,7 +36,7 @@ struct SessionListView: View {
 
         switch grouping {
         case .byProcess:
-            return filtered
+            return filtered.sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
         case .byProject:
             // Keep the freshest session per workspace (so the chip's color reflects
             // the most-active tab in that project)
@@ -149,36 +149,46 @@ struct SessionChip: View {
     }
 
     var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 6) {
-                ZStack(alignment: .topTrailing) {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.gray.opacity(0.22))
-                        .frame(width: 48, height: 48)
-                        .overlay(
-                            Image(systemName: ideIcon(for: session.ideName))
-                                .font(.system(size: 20))
-                                .foregroundColor(.white.opacity(0.9))
-                        )
+        VStack(spacing: 6) {
+            ZStack(alignment: .topTrailing) {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.gray.opacity(0.22))
+                    .frame(width: 48, height: 48)
+                    .overlay(
+                        Image(systemName: ideIcon(for: session.ideName))
+                            .font(.system(size: 20))
+                            .foregroundColor(.white.opacity(0.9))
+                    )
 
-                    Circle()
-                        .fill(statusColor)
-                        .frame(width: 10, height: 10)
-                        .overlay(Circle().stroke(Color.black, lineWidth: 1.5))
-                        .offset(x: 4, y: -4)
-                }
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 10, height: 10)
+                    .overlay(Circle().stroke(Color.black, lineWidth: 1.5))
+                    .offset(x: 4, y: -4)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { onTap() }
 
+            HStack(spacing: 3) {
                 Text(session.displayName)
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                    .frame(maxWidth: 80)
+
+                Button {
+                    manager.focusSession(session)
+                } label: {
+                    Image(systemName: "arrow.up.right.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Open this session's terminal/IDE")
             }
-            .padding(.horizontal, 4)
-            .contentShape(Rectangle())
+            .frame(maxWidth: 96)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 4)
     }
 
     private func ideIcon(for ideName: String) -> String {

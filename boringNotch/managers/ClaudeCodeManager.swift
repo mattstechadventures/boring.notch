@@ -237,7 +237,8 @@ final class ClaudeCodeManager: ObservableObject {
                     transport: nil,
                     runningInWindows: nil,
                     lastActivity: mtime,
-                    jsonlPath: jsonl?.path
+                    jsonlPath: jsonl?.path,
+                    tty: proc.tty
                 ))
             }
         }
@@ -1198,6 +1199,46 @@ final class ClaudeCodeManager: ObservableObject {
         }
 
         print("[ClaudeCode] Could not find IDE to focus")
+    }
+
+    /// Bring the actual host (Terminal tab or IDE) holding this session to the front.
+    /// Routes to AppleScript-based Terminal tab focus when we have a tty,
+    /// otherwise falls back to focusIDE bundle-id activation.
+    func focusSession(_ session: ClaudeSession? = nil) {
+        guard let target = session ?? selectedSession else { return }
+        if let tty = target.tty, !tty.isEmpty, target.ideName == "Terminal" {
+            focusTerminalTab(tty: tty)
+        } else {
+            focusIDE(for: target)
+        }
+    }
+
+    /// AppleScript-driven: select the Terminal.app tab whose tty matches and bring
+    /// its window forward. Triggers the system AppleEvents permission prompt the
+    /// first time it runs against Terminal.app.
+    private func focusTerminalTab(tty: String) {
+        let escaped = tty.replacingOccurrences(of: "\"", with: "\\\"")
+        let script = """
+        tell application "Terminal"
+            activate
+            repeat with w in windows
+                repeat with t in tabs of w
+                    if tty of t is "\(escaped)" then
+                        set selected of t to true
+                        set index of w to 1
+                        return
+                    end if
+                end repeat
+            end repeat
+        end tell
+        """
+        var error: NSDictionary?
+        if let appleScript = NSAppleScript(source: script) {
+            appleScript.executeAndReturnError(&error)
+            if let error = error {
+                print("[ClaudeCode] Terminal-focus AppleScript error: \(error)")
+            }
+        }
     }
 
     // MARK: - Notifications

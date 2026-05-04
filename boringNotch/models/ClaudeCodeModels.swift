@@ -61,6 +61,10 @@ struct ClaudeSession: Identifiable, Codable, Equatable {
     /// IDE-paired sessions leave this nil and fall back to "most recent JSONL in project dir".
     var jsonlPath: String?
 
+    /// Controlling terminal (e.g. "/dev/ttys003") for terminal-discovered sessions.
+    /// Used to find the matching Terminal.app tab when focusing.
+    var tty: String?
+
     /// Derived from workspace path for project JSONL lookup
     var projectKey: String? {
         guard let workspace = workspaceFolders.first else { return nil }

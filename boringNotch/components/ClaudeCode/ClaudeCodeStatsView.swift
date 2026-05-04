@@ -28,7 +28,7 @@ struct ClaudeCodeStatsView: View {
 
     private var detailView: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Back to list pill
+            // Back-to-list pill + Open button
             HStack(spacing: 6) {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -50,6 +50,26 @@ struct ClaudeCodeStatsView: View {
                 .buttonStyle(.plain)
 
                 Spacer()
+
+                if manager.selectedSession != nil {
+                    Button {
+                        manager.focusSession()
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.up.right.circle.fill")
+                                .font(.system(size: 11))
+                            Text("Open")
+                                .font(.caption2)
+                        }
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(10)
+                        .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Open this session's terminal/IDE")
+                }
             }
 
             // Row 1: Session picker + connection status + model/branch

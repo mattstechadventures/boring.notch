@@ -21,6 +21,8 @@ struct RunningClaudeProcess: Equatable {
     let cwd: String
     let ideName: String
     let startTime: Date
+    /// Controlling terminal path, e.g. "/dev/ttys003". Nil if process has no tty.
+    let tty: String?
 }
 
 enum ClaudeProcessScanner {
@@ -99,7 +101,8 @@ enum ClaudeProcessScanner {
                 path: path,
                 cwd: cwd,
                 ideName: inferIDE(from: path),
-                startTime: startTime
+                startTime: startTime,
+                tty: tty(forPID: pid)
             ))
         }
 
@@ -123,6 +126,21 @@ enum ClaudeProcessScanner {
             return "Windsurf"
         }
         return "Terminal"
+    }
+
+    /// Resolve the controlling terminal device path for a PID (e.g. "/dev/ttys003").
+    /// Returns nil if the process has no tty (background daemon, piped, etc).
+    private static func tty(forPID pid: pid_t) -> String? {
+        var info = proc_bsdinfo()
+        let size = MemoryLayout<proc_bsdinfo>.size
+        let bytes = withUnsafeMutablePointer(to: &info) { ptr -> Int32 in
+            proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, ptr, Int32(size))
+        }
+        guard Int(bytes) == size, info.e_tdev != 0 else { return nil }
+
+        guard let cstr = devname(dev_t(info.e_tdev), S_IFCHR) else { return nil }
+        let name = String(cString: cstr)
+        return name.isEmpty ? nil : "/dev/" + name
     }
 
     private static func currentDirectory(forPID pid: pid_t) -> String? {
