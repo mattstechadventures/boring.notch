@@ -18,6 +18,7 @@ enum SneakContentType {
     case mic
     case battery
     case download
+    case screenshot
 }
 
 struct sneakPeek {
@@ -281,7 +282,12 @@ class BoringViewCoordinator: ObservableObject {
         didSet {
             if expandingView.show {
                 expandingViewTask?.cancel()
-                let duration: TimeInterval = (expandingView.type == .download ? 2 : 3)
+                let duration: TimeInterval
+                switch expandingView.type {
+                case .download: duration = 2
+                case .screenshot: duration = 1.5
+                default: duration = 3
+                }
                 let currentType = expandingView.type
                 expandingViewTask = Task { [weak self] in
                     try? await Task.sleep(for: .seconds(duration))
