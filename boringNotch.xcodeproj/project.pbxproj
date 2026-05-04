@@ -115,6 +115,7 @@
 		5955950D2E900ED800C66711 /* ApplicationRelauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5955950C2E900ED800C66711 /* ApplicationRelauncher.swift */; };
 		59D8C23C2E589FAA00147B33 /* VolumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D8C23B2E589FAA00147B33 /* VolumeManager.swift */; };
 		7D0D52534591F17D98C95AF6 /* SessionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57DA740FE705D02BA7CCDE9D /* SessionListView.swift */; };
+		7D67EFB950AE055655083A8A /* ClaudeProcessScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5824D9550A3F5A0936F936B1 /* ClaudeProcessScanner.swift */; };
 		93FB059AF8E373D8554E3C48 /* ToolActivityIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A4AB1C45F3D1509FBC5A92B /* ToolActivityIndicator.swift */; };
 		9A0887322C7A693000C160EA /* TabButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0887312C7A693000C160EA /* TabButton.swift */; };
 		9A0887352C7AFF8E00C160EA /* TabSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0887342C7AFF8E00C160EA /* TabSelectionView.swift */; };
@@ -290,6 +291,7 @@
 		2A4AB1C45F3D1509FBC5A92B /* ToolActivityIndicator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ToolActivityIndicator.swift; sourceTree = "<group>"; };
 		507266DA2C908E2E00A2D00D /* HoverButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverButton.swift; sourceTree = "<group>"; };
 		57DA740FE705D02BA7CCDE9D /* SessionListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SessionListView.swift; sourceTree = "<group>"; };
+		5824D9550A3F5A0936F936B1 /* ClaudeProcessScanner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeProcessScanner.swift; sourceTree = "<group>"; };
 		5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaKeyInterceptor.swift; sourceTree = "<group>"; };
 		5955950C2E900ED800C66711 /* ApplicationRelauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationRelauncher.swift; sourceTree = "<group>"; };
 		59D8C23B2E589FAA00147B33 /* VolumeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeManager.swift; sourceTree = "<group>"; };
@@ -559,6 +561,7 @@
 				B1F0A0012E60000100000001 /* BrightnessManager.swift */,
 				59D8C23B2E589FAA00147B33 /* VolumeManager.swift */,
 				D9B97D477AD2E17029B30FA3 /* ClaudeCodeManager.swift */,
+				5824D9550A3F5A0936F936B1 /* ClaudeProcessScanner.swift */,
 			);
 			path = managers;
 			sourceTree = "<group>";
@@ -1084,6 +1087,7 @@
 				0A8812674FC43BDAFE2DD67E /* SessionPicker.swift in Sources */,
 				93FB059AF8E373D8554E3C48 /* ToolActivityIndicator.swift in Sources */,
 				7D0D52534591F17D98C95AF6 /* SessionListView.swift in Sources */,
+				7D67EFB950AE055655083A8A /* ClaudeProcessScanner.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

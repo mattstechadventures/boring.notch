@@ -6,19 +6,43 @@
 //
 
 import SwiftUI
+import Defaults
 
 struct SessionListView: View {
     @ObservedObject var manager: ClaudeCodeManager
     let onSelect: (ClaudeSession) -> Void
 
+    @Default(.claudeActiveThresholdMinutes) private var activeMin
+    @Default(.claudeRecentThresholdMinutes) private var recentMin
+    @Default(.showActiveClaudeSessions) private var showActive
+    @Default(.showRecentClaudeSessions) private var showRecent
+    @Default(.showIdleClaudeSessions) private var showIdle
+
+    private var visibleSessions: [ClaudeSession] {
+        let now = Date()
+        return manager.availableSessions.filter { session in
+            switch session.freshness(now: now,
+                                     activeWithin: activeMin * 60,
+                                     recentWithin: recentMin * 60) {
+            case .active:  return showActive
+            case .recent:  return showRecent
+            case .idle:    return showIdle
+            case .unknown: return showActive  // unknown counts as active until we get a timestamp
+            }
+        }
+    }
+
     var body: some View {
-        if manager.availableSessions.isEmpty {
+        if visibleSessions.isEmpty {
             ClaudeCodeEmptyView(manager: manager)
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 14) {
-                    ForEach(manager.availableSessions) { session in
-                        SessionChip(session: session, manager: manager) {
+                    ForEach(visibleSessions) { session in
+                        SessionChip(session: session,
+                                    manager: manager,
+                                    activeMin: activeMin,
+                                    recentMin: recentMin) {
                             onSelect(session)
                         }
                     }
@@ -34,13 +58,28 @@ struct SessionListView: View {
 struct SessionChip: View {
     let session: ClaudeSession
     @ObservedObject var manager: ClaudeCodeManager
+    let activeMin: Double
+    let recentMin: Double
     let onTap: () -> Void
 
     private var statusColor: Color {
-        guard let state = manager.sessionStates[session.id] else { return .gray }
-        if state.needsPermission { return .orange }
-        if state.isActive { return .green }
-        return .gray
+        // Permission needed always wins
+        if manager.sessionStates[session.id]?.needsPermission == true {
+            return .orange
+        }
+        // Currently running tools = green regardless of mtime
+        if manager.sessionStates[session.id]?.isActive == true {
+            return .green
+        }
+        // Fall back to JSONL-mtime freshness
+        switch session.freshness(now: Date(),
+                                 activeWithin: activeMin * 60,
+                                 recentWithin: recentMin * 60) {
+        case .active:  return .green
+        case .recent:  return .yellow
+        case .idle:    return .red
+        case .unknown: return .gray
+        }
     }
 
     var body: some View {

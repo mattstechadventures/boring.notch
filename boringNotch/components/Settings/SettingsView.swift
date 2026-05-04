@@ -1026,6 +1026,8 @@ struct Shelf: View {
 struct ClaudeCodeSettings: View {
     @ObservedObject var claudeCodeManager = ClaudeCodeManager.shared
     @Default(.enableClaudeCode) var enableClaudeCode
+    @Default(.claudeActiveThresholdMinutes) var activeMin
+    @Default(.claudeRecentThresholdMinutes) var recentMin
 
     var body: some View {
         Form {
@@ -1072,6 +1074,59 @@ struct ClaudeCodeSettings: View {
 
             Section {
                 HStack {
+                    Text("Active threshold")
+                    Spacer()
+                    Text("\(Int(activeMin)) min")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 60, alignment: .trailing)
+                }
+                Slider(value: $activeMin, in: 1...30, step: 1)
+
+                HStack {
+                    Text("Recent threshold")
+                    Spacer()
+                    Text("\(Int(recentMin)) min")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 60, alignment: .trailing)
+                }
+                Slider(value: $recentMin, in: 5...240, step: 5)
+            } header: {
+                Text("Freshness thresholds")
+            } footer: {
+                Text("Sessions with JSONL activity within the active threshold show a green dot. Within the recent threshold, amber. Older but still alive, red.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Defaults.Toggle(key: .showActiveClaudeSessions) {
+                    HStack {
+                        Circle().fill(Color.green).frame(width: 8, height: 8)
+                        Text("Show active sessions")
+                    }
+                }
+                Defaults.Toggle(key: .showRecentClaudeSessions) {
+                    HStack {
+                        Circle().fill(Color.yellow).frame(width: 8, height: 8)
+                        Text("Show recent sessions")
+                    }
+                }
+                Defaults.Toggle(key: .showIdleClaudeSessions) {
+                    HStack {
+                        Circle().fill(Color.red).frame(width: 8, height: 8)
+                        Text("Show idle sessions")
+                    }
+                }
+            } header: {
+                Text("Visibility")
+            } footer: {
+                Text("Hide sessions that fall into a tier you don't want to see. Ended sessions (process gone) are always hidden.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                HStack {
                     Text("Active sessions")
                     Spacer()
                     Text("\(claudeCodeManager.availableSessions.count)")
@@ -1101,15 +1156,16 @@ struct ClaudeCodeSettings: View {
     }
 
     private func sessionColor(for session: ClaudeSession) -> Color {
-        guard let state = claudeCodeManager.sessionStates[session.id] else {
-            return .gray
+        if claudeCodeManager.sessionStates[session.id]?.needsPermission == true { return .orange }
+        if claudeCodeManager.sessionStates[session.id]?.isActive == true { return .green }
+        switch session.freshness(now: Date(),
+                                 activeWithin: activeMin * 60,
+                                 recentWithin: recentMin * 60) {
+        case .active:  return .green
+        case .recent:  return .yellow
+        case .idle:    return .red
+        case .unknown: return .gray
         }
-        if state.needsPermission {
-            return .orange
-        } else if state.isActive {
-            return .green
-        }
-        return .gray
     }
 }
 

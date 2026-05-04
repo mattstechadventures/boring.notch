@@ -9,7 +9,16 @@ import Foundation
 
 // MARK: - Session Discovery
 
-/// Represents an active Claude Code IDE session from ~/.claude/ide/*.lock
+/// Tier of a session's recency — used for the status dot color on chips.
+enum SessionFreshness: String, Equatable {
+    case active     // recently active (within active threshold)
+    case recent     // moderate (within recent threshold)
+    case idle       // alive but quiet for a while
+    case unknown    // no activity timestamp available
+}
+
+/// Represents an active Claude Code IDE session from ~/.claude/ide/*.lock,
+/// or a terminal-discovered session from ~/.claude/projects/.
 struct ClaudeSession: Identifiable, Codable, Equatable {
     // Use workspace path as unique ID since multiple sessions can share the same PID (Cursor)
     var id: String { workspaceFolders.first ?? "\(pid)" }
@@ -19,6 +28,10 @@ struct ClaudeSession: Identifiable, Codable, Equatable {
     let ideName: String
     let transport: String?
     let runningInWindows: Bool?
+
+    /// JSONL mtime when this session was discovered. Optional so Codable still decodes
+    /// existing IDE lock files (which don't carry this field).
+    var lastActivity: Date?
 
     /// Derived from workspace path for project JSONL lookup
     var projectKey: String? {
@@ -34,6 +47,15 @@ struct ClaudeSession: Identifiable, Codable, Equatable {
     var displayName: String {
         guard let workspace = workspaceFolders.first else { return "Unknown" }
         return URL(fileURLWithPath: workspace).lastPathComponent
+    }
+
+    /// Compute the freshness tier given user-configured thresholds (in seconds)
+    func freshness(now: Date = Date(), activeWithin: TimeInterval, recentWithin: TimeInterval) -> SessionFreshness {
+        guard let last = lastActivity else { return .unknown }
+        let elapsed = now.timeIntervalSince(last)
+        if elapsed < activeWithin { return .active }
+        if elapsed < recentWithin { return .recent }
+        return .idle
     }
 }
 

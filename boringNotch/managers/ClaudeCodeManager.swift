@@ -199,42 +199,41 @@ final class ClaudeCodeManager: ObservableObject {
         }
     }
 
-    /// Discover sessions running in plain terminals (no IDE extension lock file).
-    /// Looks for project dirs whose latest JSONL was modified within terminalActiveWindow.
+    /// Discover sessions running outside the IDE extension protocol.
+    /// Iterates running `claude` processes (Terminal CLI, Antigravity, Cursor, etc),
+    /// maps each to its project's most recent JSONL, and uses the JSONL mtime as
+    /// the activity timestamp for freshness tiering. Sessions whose process has
+    /// ended are simply not enumerated, so they fall out of the list naturally.
     private func discoverTerminalSessions() -> [ClaudeSession] {
-        let fm = FileManager.default
-        guard fm.fileExists(atPath: projectsDir.path) else { return [] }
-
-        guard let projectDirs = try? fm.contentsOfDirectory(
-            at: projectsDir,
-            includingPropertiesForKeys: [.isDirectoryKey]
-        ) else {
-            return []
-        }
-
-        let now = Date()
+        let processes = ClaudeProcessScanner.runningClaudeProcesses()
         var sessions: [ClaudeSession] = []
+        var seenWorkspaces = Set<String>()
 
-        for projectDir in projectDirs {
-            // Skip non-directories. Note: dir mtime is unreliable on macOS for child file
-            // modifications, so we always descend and let the JSONL mtime decide.
-            guard (try? projectDir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else {
-                continue
+        for proc in processes {
+            // Dedupe: same cwd from multiple processes (e.g. parent + child) → one session
+            guard !seenWorkspaces.contains(proc.cwd) else { continue }
+            seenWorkspaces.insert(proc.cwd)
+
+            // Resolve the project's most recent JSONL (if any) for activity timestamp
+            let projectKey = proc.cwd
+                .replacingOccurrences(of: "/", with: "-")
+                .replacingOccurrences(of: ".", with: "-")
+            let projectDir = projectsDir.appendingPathComponent(projectKey)
+            let jsonl = findCurrentSessionFile(in: projectDir)
+            let mtime = jsonl.flatMap {
+                (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
             }
 
-            guard let jsonl = findCurrentSessionFile(in: projectDir),
-                  let fileMtime = (try? jsonl.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate,
-                  now.timeIntervalSince(fileMtime) < terminalActiveWindow else {
-                continue
-            }
+            // Prefer cwd from JSONL (canonical) but fall back to the process cwd
+            let workspace = jsonl.flatMap(extractCwd(from:)) ?? proc.cwd
 
-            let cwd = extractCwd(from: jsonl) ?? decodePath(fromProjectKey: projectDir.lastPathComponent)
             sessions.append(ClaudeSession(
-                pid: 0,                  // sentinel: terminal session, no IDE process to focus
-                workspaceFolders: [cwd],
-                ideName: "Terminal",
+                pid: Int(proc.pid),
+                workspaceFolders: [workspace],
+                ideName: proc.ideName,
                 transport: nil,
-                runningInWindows: nil
+                runningInWindows: nil,
+                lastActivity: mtime
             ))
         }
 

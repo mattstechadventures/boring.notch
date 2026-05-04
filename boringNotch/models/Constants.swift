@@ -186,6 +186,13 @@ extension Defaults.Keys {
     // MARK: Claude Code
     static let enableClaudeCode = Key<Bool>("enableClaudeCode", default: true)
     static let enableClaudeCodeCollapsedView = Key<Bool>("enableClaudeCodeCollapsedView", default: true)
+    /// Minutes of JSONL inactivity below which a session is "active" (green dot)
+    static let claudeActiveThresholdMinutes = Key<Double>("claudeActiveThresholdMinutes", default: 5)
+    /// Minutes below which a session is "recent" (amber dot). Above this = "idle" (red dot).
+    static let claudeRecentThresholdMinutes = Key<Double>("claudeRecentThresholdMinutes", default: 60)
+    static let showActiveClaudeSessions = Key<Bool>("showActiveClaudeSessions", default: true)
+    static let showRecentClaudeSessions = Key<Bool>("showRecentClaudeSessions", default: true)
+    static let showIdleClaudeSessions = Key<Bool>("showIdleClaudeSessions", default: true)
 
     // MARK: Advanced Settings
     static let useCustomAccentColor = Key<Bool>("useCustomAccentColor", default: false)
