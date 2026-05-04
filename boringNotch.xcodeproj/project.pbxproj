@@ -114,6 +114,7 @@
 		5917FD112E57891600E87F1C /* MediaKeyInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */; };
 		5955950D2E900ED800C66711 /* ApplicationRelauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5955950C2E900ED800C66711 /* ApplicationRelauncher.swift */; };
 		59D8C23C2E589FAA00147B33 /* VolumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D8C23B2E589FAA00147B33 /* VolumeManager.swift */; };
+		7D0D52534591F17D98C95AF6 /* SessionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57DA740FE705D02BA7CCDE9D /* SessionListView.swift */; };
 		93FB059AF8E373D8554E3C48 /* ToolActivityIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A4AB1C45F3D1509FBC5A92B /* ToolActivityIndicator.swift */; };
 		9A0887322C7A693000C160EA /* TabButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0887312C7A693000C160EA /* TabButton.swift */; };
 		9A0887352C7AFF8E00C160EA /* TabSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0887342C7AFF8E00C160EA /* TabSelectionView.swift */; };
@@ -288,6 +289,7 @@
 		19A3396A8D82AFB69AB7975A /* ClaudeCodeStatsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeCodeStatsView.swift; sourceTree = "<group>"; };
 		2A4AB1C45F3D1509FBC5A92B /* ToolActivityIndicator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ToolActivityIndicator.swift; sourceTree = "<group>"; };
 		507266DA2C908E2E00A2D00D /* HoverButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverButton.swift; sourceTree = "<group>"; };
+		57DA740FE705D02BA7CCDE9D /* SessionListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SessionListView.swift; sourceTree = "<group>"; };
 		5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaKeyInterceptor.swift; sourceTree = "<group>"; };
 		5955950C2E900ED800C66711 /* ApplicationRelauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationRelauncher.swift; sourceTree = "<group>"; };
 		59D8C23B2E589FAA00147B33 /* VolumeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeManager.swift; sourceTree = "<group>"; };
@@ -687,6 +689,7 @@
 				C20589E4EC2B6DF02EB2EA30 /* SessionDotsIndicator.swift */,
 				C77673A896065B0231C16321 /* SessionPicker.swift */,
 				2A4AB1C45F3D1509FBC5A92B /* ToolActivityIndicator.swift */,
+				57DA740FE705D02BA7CCDE9D /* SessionListView.swift */,
 			);
 			name = ClaudeCode;
 			path = ClaudeCode;
@@ -1080,6 +1083,7 @@
 				485DE6DCD98DCF60384F8D7E /* SessionDotsIndicator.swift in Sources */,
 				0A8812674FC43BDAFE2DD67E /* SessionPicker.swift in Sources */,
 				93FB059AF8E373D8554E3C48 /* ToolActivityIndicator.swift in Sources */,
+				7D0D52534591F17D98C95AF6 /* SessionListView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

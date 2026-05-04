@@ -120,6 +120,9 @@ final class ClaudeCodeManager: ObservableObject {
     /// Set higher to prevent flickering between tool calls
     private let idleCheckDelay: TimeInterval = 8.0
 
+    /// How recently a project's JSONL must have been modified for a terminal-discovered session to count as active
+    private let terminalActiveWindow: TimeInterval = 600  // 10 minutes
+
     // MARK: - Initialization
 
     private init() {
@@ -136,72 +139,131 @@ final class ClaudeCodeManager: ObservableObject {
     func scanForSessions() {
         let fm = FileManager.default
 
-        guard fm.fileExists(atPath: ideDir.path) else {
-            availableSessions = []
-            return
-        }
+        var sessions: [ClaudeSession] = []
 
-        do {
-            let lockFiles = try fm.contentsOfDirectory(at: ideDir, includingPropertiesForKeys: nil)
-                .filter { $0.pathExtension == "lock" }
-
-            var sessions: [ClaudeSession] = []
-
+        // 1. IDE-paired sessions (from ~/.claude/ide/*.lock — written by IDE extension)
+        if fm.fileExists(atPath: ideDir.path),
+           let lockFiles = try? fm.contentsOfDirectory(at: ideDir, includingPropertiesForKeys: nil)
+               .filter({ $0.pathExtension == "lock" })
+        {
             for lockFile in lockFiles {
-                guard let data = fm.contents(atPath: lockFile.path) else {
+                guard let data = fm.contents(atPath: lockFile.path),
+                      let session = try? JSONDecoder().decode(ClaudeSession.self, from: data),
+                      isProcessRunning(pid: session.pid) else {
                     continue
                 }
-
-                do {
-                    let session = try JSONDecoder().decode(ClaudeSession.self, from: data)
-
-                    // Verify process is still running
-                    if isProcessRunning(pid: session.pid) {
-                        sessions.append(session)
-                    }
-                } catch {
-                    // Skip invalid lock files silently
-                }
+                sessions.append(session)
             }
-
-            // Only log when session count changes
-            if sessions.count != availableSessions.count {
-                print("[ClaudeCode] Active sessions: \(sessions.count)")
-            }
-            availableSessions = sessions
-
-            // Auto-select if only one session and none selected
-            if selectedSession == nil && sessions.count == 1 {
-                selectSession(sessions[0])
-            }
-
-            // Clear selection if selected session no longer exists
-            if let selected = selectedSession,
-               !sessions.contains(where: { $0.pid == selected.pid }) {
-                selectedSession = nil
-                state = ClaudeCodeState()
-                stopWatchingSessionFile()
-            }
-
-            // MARK: Multi-Session Watching - Watch ALL sessions for permission detection
-            let currentSessionIds = Set(sessions.map { $0.id })
-
-            // Start watching new sessions
-            for session in sessions {
-                if sessionWatchers[session.id] == nil {
-                    startWatchingSession(session)
-                }
-            }
-
-            // Stop watching sessions that no longer exist
-            let watchedIds = Array(sessionWatchers.keys)
-            for watchedId in watchedIds where !currentSessionIds.contains(watchedId) {
-                stopWatchingSession(id: watchedId)
-            }
-
-        } catch {
-            print("[ClaudeCode] Error scanning for sessions: \(error)")
         }
+
+        // 2. Terminal-discovered sessions (from ~/.claude/projects/ — covers plain CLI usage)
+        let knownIds = Set(sessions.map { $0.id })
+        for ts in discoverTerminalSessions() where !knownIds.contains(ts.id) {
+            sessions.append(ts)
+        }
+
+        // 3. Update state
+        if sessions.count != availableSessions.count {
+            print("[ClaudeCode] Active sessions: \(sessions.count)")
+        }
+        availableSessions = sessions
+
+        // Auto-select if only one session and none selected
+        if selectedSession == nil && sessions.count == 1 {
+            selectSession(sessions[0])
+        }
+
+        // Clear selection if selected session no longer exists. Compare by id, not pid:
+        // terminal sessions all share the pid sentinel of 0.
+        if let selected = selectedSession,
+           !sessions.contains(where: { $0.id == selected.id }) {
+            selectedSession = nil
+            state = ClaudeCodeState()
+            stopWatchingSessionFile()
+        }
+
+        // MARK: Multi-Session Watching - Watch ALL sessions for permission detection
+        let currentSessionIds = Set(sessions.map { $0.id })
+
+        // Start watching new sessions
+        for session in sessions {
+            if sessionWatchers[session.id] == nil {
+                startWatchingSession(session)
+            }
+        }
+
+        // Stop watching sessions that no longer exist
+        let watchedIds = Array(sessionWatchers.keys)
+        for watchedId in watchedIds where !currentSessionIds.contains(watchedId) {
+            stopWatchingSession(id: watchedId)
+        }
+    }
+
+    /// Discover sessions running in plain terminals (no IDE extension lock file).
+    /// Looks for project dirs whose latest JSONL was modified within terminalActiveWindow.
+    private func discoverTerminalSessions() -> [ClaudeSession] {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: projectsDir.path) else { return [] }
+
+        guard let projectDirs = try? fm.contentsOfDirectory(
+            at: projectsDir,
+            includingPropertiesForKeys: [.isDirectoryKey]
+        ) else {
+            return []
+        }
+
+        let now = Date()
+        var sessions: [ClaudeSession] = []
+
+        for projectDir in projectDirs {
+            // Skip non-directories. Note: dir mtime is unreliable on macOS for child file
+            // modifications, so we always descend and let the JSONL mtime decide.
+            guard (try? projectDir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else {
+                continue
+            }
+
+            guard let jsonl = findCurrentSessionFile(in: projectDir),
+                  let fileMtime = (try? jsonl.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate,
+                  now.timeIntervalSince(fileMtime) < terminalActiveWindow else {
+                continue
+            }
+
+            let cwd = extractCwd(from: jsonl) ?? decodePath(fromProjectKey: projectDir.lastPathComponent)
+            sessions.append(ClaudeSession(
+                pid: 0,                  // sentinel: terminal session, no IDE process to focus
+                workspaceFolders: [cwd],
+                ideName: "Terminal",
+                transport: nil,
+                runningInWindows: nil
+            ))
+        }
+
+        return sessions
+    }
+
+    /// Read the first ~32KB of a JSONL file looking for any line with a `cwd` field.
+    private func extractCwd(from jsonl: URL) -> String? {
+        guard let handle = try? FileHandle(forReadingFrom: jsonl) else { return nil }
+        defer { try? handle.close() }
+
+        let data = (try? handle.read(upToCount: 32 * 1024)) ?? Data()
+        guard let content = String(data: data, encoding: .utf8) else { return nil }
+
+        for line in content.components(separatedBy: .newlines) where !line.isEmpty {
+            guard let lineData = line.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
+                  let cwd = json["cwd"] as? String else {
+                continue
+            }
+            return cwd
+        }
+        return nil
+    }
+
+    /// Fallback when JSONL has no usable `cwd` line. Lossy: original `.` chars become `/`.
+    private func decodePath(fromProjectKey key: String) -> String {
+        guard key.hasPrefix("-") else { return key }
+        return "/" + key.dropFirst().replacingOccurrences(of: "-", with: "/")
     }
 
     /// Select a session to monitor

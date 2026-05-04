@@ -9,9 +9,49 @@ import SwiftUI
 
 struct ClaudeCodeStatsView: View {
     @ObservedObject var manager = ClaudeCodeManager.shared
+    @State private var showingList: Bool = true
 
     var body: some View {
+        Group {
+            if showingList {
+                SessionListView(manager: manager) { session in
+                    manager.selectSession(session)
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showingList = false
+                    }
+                }
+            } else {
+                detailView
+            }
+        }
+    }
+
+    private var detailView: some View {
         VStack(alignment: .leading, spacing: 6) {
+            // Back to list pill
+            HStack(spacing: 6) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showingList = true
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 9, weight: .semibold))
+                        Text("All sessions")
+                            .font(.caption2)
+                    }
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.gray.opacity(0.2))
+                    .cornerRadius(10)
+                    .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+            }
+
             // Row 1: Session picker + connection status + model/branch
             HStack(spacing: 6) {
                 SessionPicker(manager: manager)
