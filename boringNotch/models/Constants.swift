@@ -193,6 +193,7 @@ extension Defaults.Keys {
     static let showActiveClaudeSessions = Key<Bool>("showActiveClaudeSessions", default: true)
     static let showRecentClaudeSessions = Key<Bool>("showRecentClaudeSessions", default: true)
     static let showIdleClaudeSessions = Key<Bool>("showIdleClaudeSessions", default: true)
+    static let claudeSessionGrouping = Key<SessionGrouping>("claudeSessionGrouping", default: .byProcess)
 
     // MARK: Advanced Settings
     static let useCustomAccentColor = Key<Bool>("useCustomAccentColor", default: false)

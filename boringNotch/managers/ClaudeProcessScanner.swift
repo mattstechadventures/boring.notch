@@ -20,6 +20,7 @@ struct RunningClaudeProcess: Equatable {
     let path: String
     let cwd: String
     let ideName: String
+    let startTime: Date
 }
 
 enum ClaudeProcessScanner {
@@ -89,11 +90,16 @@ enum ClaudeProcessScanner {
                 continue
             }
 
+            let tv = procs[i].kp_proc.p_starttime
+            let startTime = Date(timeIntervalSince1970:
+                TimeInterval(tv.tv_sec) + TimeInterval(tv.tv_usec) / 1_000_000)
+
             results.append(RunningClaudeProcess(
                 pid: pid,
                 path: path,
                 cwd: cwd,
-                ideName: inferIDE(from: path)
+                ideName: inferIDE(from: path),
+                startTime: startTime
             ))
         }
 

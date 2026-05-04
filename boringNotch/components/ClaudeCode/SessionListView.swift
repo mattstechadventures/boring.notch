@@ -17,40 +17,106 @@ struct SessionListView: View {
     @Default(.showActiveClaudeSessions) private var showActive
     @Default(.showRecentClaudeSessions) private var showRecent
     @Default(.showIdleClaudeSessions) private var showIdle
+    @Default(.claudeSessionGrouping) private var grouping
+
+    @State private var hoveredSessionId: String?
 
     private var visibleSessions: [ClaudeSession] {
         let now = Date()
-        return manager.availableSessions.filter { session in
+        let filtered = manager.availableSessions.filter { session in
             switch session.freshness(now: now,
                                      activeWithin: activeMin * 60,
                                      recentWithin: recentMin * 60) {
             case .active:  return showActive
             case .recent:  return showRecent
             case .idle:    return showIdle
-            case .unknown: return showActive  // unknown counts as active until we get a timestamp
+            case .unknown: return showActive
             }
         }
+
+        switch grouping {
+        case .byProcess:
+            return filtered
+        case .byProject:
+            // Keep the freshest session per workspace (so the chip's color reflects
+            // the most-active tab in that project)
+            var seen: [String: ClaudeSession] = [:]
+            for s in filtered {
+                let key = s.workspaceKey
+                if let existing = seen[key],
+                   (existing.lastActivity ?? .distantPast) >= (s.lastActivity ?? .distantPast) {
+                    continue
+                }
+                seen[key] = s
+            }
+            return Array(seen.values).sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
+        }
+    }
+
+    private var hoveredMessage: String? {
+        guard let id = hoveredSessionId,
+              let msg = manager.sessionStates[id]?.lastMessage,
+              !msg.isEmpty else {
+            return nil
+        }
+        return msg
     }
 
     var body: some View {
         if visibleSessions.isEmpty {
             ClaudeCodeEmptyView(manager: manager)
         } else {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 14) {
-                    ForEach(visibleSessions) { session in
-                        SessionChip(session: session,
-                                    manager: manager,
-                                    activeMin: activeMin,
-                                    recentMin: recentMin) {
-                            onSelect(session)
+            VStack(spacing: 8) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 14) {
+                        ForEach(visibleSessions) { session in
+                            SessionChip(session: session,
+                                        manager: manager,
+                                        activeMin: activeMin,
+                                        recentMin: recentMin) {
+                                onSelect(session)
+                            }
+                            .onHover { inside in
+                                hoveredSessionId = inside ? session.id : (hoveredSessionId == session.id ? nil : hoveredSessionId)
+                            }
                         }
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
                 }
+
+                // Preview area: shows hovered session's last message, or a placeholder.
+                // Always visible (placeholder when nothing hovered) so layout doesn't shift.
+                Group {
+                    if let msg = hoveredMessage {
+                        Text(msg)
+                            .font(.caption)
+                            .foregroundColor(.primary.opacity(0.85))
+                            .lineLimit(3)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .transition(.opacity)
+                    } else {
+                        Text(hoveredSessionId == nil
+                             ? "Hover a chip to preview"
+                             : "No messages yet")
+                            .font(.caption2)
+                            .foregroundColor(.secondary.opacity(0.6))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .transition(.opacity)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.12))
+                )
                 .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .frame(height: 64, alignment: .topLeading)
+                .animation(.easeInOut(duration: 0.15), value: hoveredSessionId)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
 }

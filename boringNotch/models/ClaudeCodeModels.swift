@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Defaults
 
 // MARK: - Session Discovery
 
@@ -17,11 +18,34 @@ enum SessionFreshness: String, Equatable {
     case unknown    // no activity timestamp available
 }
 
+/// How session chips are grouped in the list view.
+enum SessionGrouping: String, CaseIterable, Identifiable, Defaults.Serializable {
+    case byProject  // one chip per workspace (multiple terminal tabs collapse)
+    case byProcess  // one chip per running claude process
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .byProject: return "By project"
+        case .byProcess: return "By process (per terminal tab)"
+        }
+    }
+}
+
 /// Represents an active Claude Code IDE session from ~/.claude/ide/*.lock,
 /// or a terminal-discovered session from ~/.claude/projects/.
 struct ClaudeSession: Identifiable, Codable, Equatable {
-    // Use workspace path as unique ID since multiple sessions can share the same PID (Cursor)
-    var id: String { workspaceFolders.first ?? "\(pid)" }
+    /// Per-process unique id: workspace#pid. For IDE-paired sessions (lock files)
+    /// this collapses naturally since pid is already unique per workspace; for
+    /// terminal-discovered sessions multiple pids in the same cwd get distinct ids.
+    var id: String {
+        let ws = workspaceFolders.first ?? ""
+        return "\(ws)#\(pid)"
+    }
+
+    /// Workspace-only key used to dedupe chips when grouping byProject.
+    var workspaceKey: String { workspaceFolders.first ?? "\(pid)" }
 
     let pid: Int
     let workspaceFolders: [String]
@@ -32,6 +56,10 @@ struct ClaudeSession: Identifiable, Codable, Equatable {
     /// JSONL mtime when this session was discovered. Optional so Codable still decodes
     /// existing IDE lock files (which don't carry this field).
     var lastActivity: Date?
+
+    /// Specific JSONL file this session is writing to (terminal-discovered only).
+    /// IDE-paired sessions leave this nil and fall back to "most recent JSONL in project dir".
+    var jsonlPath: String?
 
     /// Derived from workspace path for project JSONL lookup
     var projectKey: String? {

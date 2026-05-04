@@ -1028,6 +1028,7 @@ struct ClaudeCodeSettings: View {
     @Default(.enableClaudeCode) var enableClaudeCode
     @Default(.claudeActiveThresholdMinutes) var activeMin
     @Default(.claudeRecentThresholdMinutes) var recentMin
+    @Default(.claudeSessionGrouping) var grouping
 
     var body: some View {
         Form {
@@ -1068,6 +1069,20 @@ struct ClaudeCodeSettings: View {
                 Text("General")
             } footer: {
                 Text("Session dots show the status of active Claude Code sessions. Tap a dot to focus the corresponding IDE.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Picker("Grouping", selection: $grouping) {
+                    ForEach(SessionGrouping.allCases) { g in
+                        Text(g.label).tag(g)
+                    }
+                }
+            } header: {
+                Text("Chip layout")
+            } footer: {
+                Text("By project: one chip per workspace, multiple terminal tabs collapse together. By process: one chip per running claude process, so each terminal tab gets its own chip with its own transcript.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

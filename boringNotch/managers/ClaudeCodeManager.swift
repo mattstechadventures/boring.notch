@@ -200,44 +200,91 @@ final class ClaudeCodeManager: ObservableObject {
     }
 
     /// Discover sessions running outside the IDE extension protocol.
-    /// Iterates running `claude` processes (Terminal CLI, Antigravity, Cursor, etc),
-    /// maps each to its project's most recent JSONL, and uses the JSONL mtime as
-    /// the activity timestamp for freshness tiering. Sessions whose process has
-    /// ended are simply not enumerated, so they fall out of the list naturally.
+    /// One session per running `claude` process. Each is mapped to its specific
+    /// JSONL by start-time correlation, so the detail view shows that tab's
+    /// transcript (not just the most-recently-active tab in the workspace).
     private func discoverTerminalSessions() -> [ClaudeSession] {
         let processes = ClaudeProcessScanner.runningClaudeProcesses()
         var sessions: [ClaudeSession] = []
-        var seenWorkspaces = Set<String>()
+        var assignedJSONLs = Set<String>()  // global, prevents two PIDs grabbing the same file
 
-        for proc in processes {
-            // Dedupe: same cwd from multiple processes (e.g. parent + child) → one session
-            guard !seenWorkspaces.contains(proc.cwd) else { continue }
-            seenWorkspaces.insert(proc.cwd)
+        // Group by workspace so we can pre-list JSONL candidates once per project
+        let byWorkspace = Dictionary(grouping: processes, by: \.cwd)
 
-            // Resolve the project's most recent JSONL (if any) for activity timestamp
-            let projectKey = proc.cwd
+        for (cwd, procs) in byWorkspace {
+            let projectKey = cwd
                 .replacingOccurrences(of: "/", with: "-")
                 .replacingOccurrences(of: ".", with: "-")
             let projectDir = projectsDir.appendingPathComponent(projectKey)
-            let jsonl = findCurrentSessionFile(in: projectDir)
-            let mtime = jsonl.flatMap {
-                (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            let candidates = listJSONLs(in: projectDir)
+
+            // Process oldest first so older PIDs claim older JSONLs (creation-time order)
+            let sortedProcs = procs.sorted { $0.startTime < $1.startTime }
+
+            for proc in sortedProcs {
+                let jsonl = matchJSONL(for: proc, candidates: candidates, exclude: assignedJSONLs)
+                if let url = jsonl { assignedJSONLs.insert(url.path) }
+
+                let mtime = jsonl.flatMap {
+                    (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+                }
+                let workspace = jsonl.flatMap(extractCwd(from:)) ?? proc.cwd
+
+                sessions.append(ClaudeSession(
+                    pid: Int(proc.pid),
+                    workspaceFolders: [workspace],
+                    ideName: proc.ideName,
+                    transport: nil,
+                    runningInWindows: nil,
+                    lastActivity: mtime,
+                    jsonlPath: jsonl?.path
+                ))
             }
-
-            // Prefer cwd from JSONL (canonical) but fall back to the process cwd
-            let workspace = jsonl.flatMap(extractCwd(from:)) ?? proc.cwd
-
-            sessions.append(ClaudeSession(
-                pid: Int(proc.pid),
-                workspaceFolders: [workspace],
-                ideName: proc.ideName,
-                transport: nil,
-                runningInWindows: nil,
-                lastActivity: mtime
-            ))
         }
 
         return sessions
+    }
+
+    /// All non-agent JSONLs in a project dir, with their creation/mtime cached.
+    private func listJSONLs(in projectDir: URL) -> [URL] {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: projectDir.path),
+              let urls = try? fm.contentsOfDirectory(
+                at: projectDir,
+                includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey]) else {
+            return []
+        }
+        return urls.filter {
+            $0.pathExtension == "jsonl" && !$0.lastPathComponent.hasPrefix("agent-")
+        }
+    }
+
+    /// Match a process to its specific JSONL.
+    /// 1. Prefer JSONL whose creation time falls within (procStart - 5s, procStart + 60s)
+    ///    — the typical case where claude was just launched.
+    /// 2. Fallback (resume case): JSONL with most recent mtime ≥ procStart.
+    /// 3. None matches → nil (caller falls back to most-recent-in-dir).
+    private func matchJSONL(for proc: RunningClaudeProcess,
+                            candidates: [URL],
+                            exclude: Set<String>) -> URL? {
+        let lower = proc.startTime.addingTimeInterval(-5)
+        let upper = proc.startTime.addingTimeInterval(60)
+
+        var freshMatches: [(URL, TimeInterval)] = []
+        var resumeMatches: [(URL, Date)] = []
+
+        for url in candidates where !exclude.contains(url.path) {
+            let resv = try? url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
+            if let created = resv?.creationDate, created >= lower, created <= upper {
+                freshMatches.append((url, abs(created.timeIntervalSince(proc.startTime))))
+            } else if let mtime = resv?.contentModificationDate, mtime >= proc.startTime {
+                resumeMatches.append((url, mtime))
+            }
+        }
+
+        if let best = freshMatches.min(by: { $0.1 < $1.1 }) { return best.0 }
+        if let best = resumeMatches.max(by: { $0.1 < $1.1 }) { return best.0 }
+        return nil
     }
 
     /// Read the first ~32KB of a JSONL file looking for any line with a `cwd` field.
@@ -329,20 +376,19 @@ final class ClaudeCodeManager: ObservableObject {
     private func startWatchingSessionFile() {
         stopWatchingSessionFile()
 
-        guard let session = selectedSession,
-              let projectKey = session.projectKey else {
-            print("[ClaudeCode] No session or projectKey available")
-            return
-        }
+        guard let session = selectedSession else { return }
 
-        print("[ClaudeCode] Looking for project dir with key: \(projectKey)")
-        let projectDir = projectsDir.appendingPathComponent(projectKey)
-        print("[ClaudeCode] Project dir path: \(projectDir.path)")
-        print("[ClaudeCode] Project dir exists: \(FileManager.default.fileExists(atPath: projectDir.path))")
-
-        // Find the most recent JSONL file (not agent files)
-        guard let jsonlFile = findCurrentSessionFile(in: projectDir) else {
-            print("[ClaudeCode] No session file found for project: \(projectKey)")
+        // Prefer the session's specific JSONL (per-process correlation), fall back to
+        // the most recent JSONL in the project dir (IDE-paired or correlation failed).
+        let jsonlFile: URL? = {
+            if let path = session.jsonlPath {
+                return URL(fileURLWithPath: path)
+            }
+            guard let projectKey = session.projectKey else { return nil }
+            return findCurrentSessionFile(in: projectsDir.appendingPathComponent(projectKey))
+        }()
+        guard let jsonlFile else {
+            print("[ClaudeCode] No session file for \(session.displayName)")
             return
         }
 
@@ -418,13 +464,16 @@ final class ClaudeCodeManager: ObservableObject {
 
     /// Start watching a specific session for permission detection
     private func startWatchingSession(_ session: ClaudeSession) {
-        guard sessionWatchers[session.id] == nil,
-              let projectKey = session.projectKey else {
-            return
-        }
+        guard sessionWatchers[session.id] == nil else { return }
 
-        let projectDir = projectsDir.appendingPathComponent(projectKey)
-        guard let jsonlFile = findCurrentSessionFile(in: projectDir) else {
+        let jsonlFile: URL? = {
+            if let path = session.jsonlPath {
+                return URL(fileURLWithPath: path)
+            }
+            guard let projectKey = session.projectKey else { return nil }
+            return findCurrentSessionFile(in: projectsDir.appendingPathComponent(projectKey))
+        }()
+        guard let jsonlFile = jsonlFile else {
             print("[ClaudeCode-Multi] No session file found for: \(session.displayName)")
             return
         }
@@ -625,11 +674,20 @@ final class ClaudeCodeManager: ObservableObject {
             }
         }
 
-        // Extract message content for tool_use detection
+        // Extract message content for tool_use detection AND last-message preview
         if let content = message["content"] as? [[String: Any]] {
             for item in content {
                 if let type = item["type"] as? String {
                     switch type {
+                    case "text":
+                        if let text = item["text"] as? String {
+                            // Keep first ~300 chars, newlines collapsed to spaces — used for hover preview
+                            let collapsed = text
+                                .replacingOccurrences(of: "\n", with: " ")
+                                .trimmingCharacters(in: .whitespaces)
+                            sessionStates[sessionId]?.lastMessage = String(collapsed.prefix(300))
+                            sessionStates[sessionId]?.lastMessageTime = Date()
+                        }
                     case "tool_use":
                         if let toolId = item["id"] as? String,
                            let toolName = item["name"] as? String {
