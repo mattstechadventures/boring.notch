@@ -199,4 +199,11 @@ extension Defaults.Keys {
     }
 
     static let didClearLegacyURLCacheV1 = Key<Bool>("didClearLegacyURLCache_v1", default: false)
+
+    // MARK: Screenshots
+    static let screenshotTrayEnabled = Key<Bool>("screenshotTrayEnabled", default: false)
+    static let screenshotsFolderBookmark = Key<Data?>("screenshotsFolderBookmark", default: nil)
+    static let screenshotPinnedFolders = Key<[PinnedFolder]>("screenshotPinnedFolders", default: [])
+    static let screenshotTrayMaxVisible = Key<Int>("screenshotTrayMaxVisible", default: 12)
+    static let screenshotCaptureAnimationEnabled = Key<Bool>("screenshotCaptureAnimationEnabled", default: true)
 }
