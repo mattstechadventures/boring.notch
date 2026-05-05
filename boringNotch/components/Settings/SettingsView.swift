@@ -63,6 +63,9 @@ struct SettingsView: View {
                 NavigationLink(value: "Advanced") {
                     Label("Advanced", systemImage: "gearshape.2")
                 }
+                NavigationLink(value: "ClaudeCode") {
+                    Label("Claude Code", systemImage: "terminal")
+                }
                 NavigationLink(value: "About") {
                     Label("About", systemImage: "info.circle")
                 }
@@ -90,6 +93,8 @@ struct SettingsView: View {
                     Shelf()
                 case "Screenshots":
                     ScreenshotSettings()
+                case "ClaudeCode":
+                    ClaudeCodeSettings()
                 case "Shortcuts":
                     Shortcuts()
                 case "Extensions":
@@ -1020,6 +1025,167 @@ struct Shelf: View {
         }
         .accentColor(.effectiveAccent)
         .navigationTitle("Shelf")
+    }
+}
+
+struct ClaudeCodeSettings: View {
+    @ObservedObject var claudeCodeManager = ClaudeCodeManager.shared
+    @Default(.enableClaudeCode) var enableClaudeCode
+    @Default(.claudeActiveThresholdMinutes) var activeMin
+    @Default(.claudeRecentThresholdMinutes) var recentMin
+    @Default(.claudeSessionGrouping) var grouping
+
+    var body: some View {
+        Form {
+            Section {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Enable Claude Code integration")
+                            .font(.headline)
+                        Text("Show Claude Code tab in the expanded notch view.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 40)
+                    Defaults.Toggle("", key: .enableClaudeCode)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.large)
+                }
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Show session dots in closed notch")
+                            .font(.headline)
+                        Text("Display session status dots below the notch when closed.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 40)
+                    Defaults.Toggle("", key: .enableClaudeCodeCollapsedView)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.large)
+                        .disabled(!enableClaudeCode)
+                }
+            } header: {
+                Text("General")
+            } footer: {
+                Text("Session dots show the status of active Claude Code sessions. Tap a dot to focus the corresponding IDE.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Picker("Grouping", selection: $grouping) {
+                    ForEach(SessionGrouping.allCases) { g in
+                        Text(g.label).tag(g)
+                    }
+                }
+            } header: {
+                Text("Chip layout")
+            } footer: {
+                Text("By project: one chip per workspace, multiple terminal tabs collapse together. By process: one chip per running claude process, so each terminal tab gets its own chip with its own transcript.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                HStack {
+                    Text("Active threshold")
+                    Spacer()
+                    Text("\(Int(activeMin)) min")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 60, alignment: .trailing)
+                }
+                Slider(value: $activeMin, in: 1...30, step: 1)
+
+                HStack {
+                    Text("Recent threshold")
+                    Spacer()
+                    Text("\(Int(recentMin)) min")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 60, alignment: .trailing)
+                }
+                Slider(value: $recentMin, in: 5...240, step: 5)
+            } header: {
+                Text("Freshness thresholds")
+            } footer: {
+                Text("Sessions with JSONL activity within the active threshold show a green dot. Within the recent threshold, amber. Older but still alive, red.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Defaults.Toggle(key: .showActiveClaudeSessions) {
+                    HStack {
+                        Circle().fill(Color.green).frame(width: 8, height: 8)
+                        Text("Show active sessions")
+                    }
+                }
+                Defaults.Toggle(key: .showRecentClaudeSessions) {
+                    HStack {
+                        Circle().fill(Color.yellow).frame(width: 8, height: 8)
+                        Text("Show recent sessions")
+                    }
+                }
+                Defaults.Toggle(key: .showIdleClaudeSessions) {
+                    HStack {
+                        Circle().fill(Color.red).frame(width: 8, height: 8)
+                        Text("Show idle sessions")
+                    }
+                }
+            } header: {
+                Text("Visibility")
+            } footer: {
+                Text("Hide sessions that fall into a tier you don't want to see. Ended sessions (process gone) are always hidden.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                HStack {
+                    Text("Active sessions")
+                    Spacer()
+                    Text("\(claudeCodeManager.availableSessions.count)")
+                        .foregroundStyle(.secondary)
+                }
+
+                if !claudeCodeManager.availableSessions.isEmpty {
+                    ForEach(claudeCodeManager.availableSessions) { session in
+                        HStack {
+                            Circle()
+                                .fill(sessionColor(for: session))
+                                .frame(width: 8, height: 8)
+                            Text(session.displayName)
+                            Spacer()
+                            Text(session.ideName)
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                        }
+                    }
+                }
+            } header: {
+                Text("Sessions")
+            }
+        }
+        .accentColor(.effectiveAccent)
+        .navigationTitle("Claude Code")
+    }
+
+    private func sessionColor(for session: ClaudeSession) -> Color {
+        if claudeCodeManager.sessionStates[session.id]?.needsPermission == true { return .orange }
+        if claudeCodeManager.sessionStates[session.id]?.isActive == true { return .green }
+        switch session.freshness(now: Date(),
+                                 activeWithin: activeMin * 60,
+                                 recentWithin: recentMin * 60) {
+        case .active:  return .green
+        case .recent:  return .yellow
+        case .idle:    return .red
+        case .unknown: return .gray
+        }
     }
 }
 
