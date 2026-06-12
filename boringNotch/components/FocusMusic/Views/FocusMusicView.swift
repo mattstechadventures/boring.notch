@@ -57,7 +57,7 @@ struct FocusMusicView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.vertical, 8)
+        .padding(.top, 8)
     }
 
     private var emptyState: some View {
