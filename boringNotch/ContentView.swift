@@ -24,6 +24,7 @@ struct ContentView: View {
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
     @ObservedObject var claudeCodeManager = ClaudeCodeManager.shared
+    @ObservedObject var pomodoroManager = PomodoroManager.shared
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
@@ -70,6 +71,11 @@ struct ContentView: View {
             && vm.notchState == .closed
         {
             chinWidth = 480
+        } else if !coordinator.expandingView.show && vm.notchState == .closed
+            && Defaults[.showPomodoroInClosedNotch] && pomodoroManager.isRunning && !vm.hideOnClosed
+        {
+            // PomodoroLiveActivity renders an 80pt icon + 90pt countdown either side of the notch.
+            chinWidth += 180
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
             && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
@@ -301,6 +307,10 @@ struct ContentView: View {
                       } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && (coordinator.sneakPeek.type != .battery) && vm.notchState == .closed {
                           InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                               .transition(.opacity)
+                      } else if !coordinator.expandingView.show && vm.notchState == .closed && Defaults[.showPomodoroInClosedNotch] && pomodoroManager.isRunning && !vm.hideOnClosed {
+                          PomodoroLiveActivity()
+                              .frame(height: vm.effectiveClosedNotchHeight)
+                              .transition(.opacity)
                       } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
                           MusicLiveActivity()
                               .frame(alignment: .center)
@@ -371,6 +381,10 @@ struct ContentView: View {
                         ScreenshotTrayView()
                     case .claudeCode:
                         ClaudeCodeStatsView()
+                    case .pomodoro:
+                        PomodoroView()
+                    case .focusMusic:
+                        FocusMusicView()
                     }
                 }
                 .transition(

@@ -25,6 +25,66 @@ struct CustomVisualizer: Codable, Hashable, Equatable, Defaults.Serializable {
     var speed: CGFloat = 1.0
 }
 
+/// A user-configured focus-music track backed by a YouTube video.
+/// We store the raw URL the user pastes and derive the video id / thumbnail / embed URL from it.
+struct FocusTrack: Codable, Hashable, Equatable, Identifiable, Defaults.Serializable {
+    var id: UUID = UUID()
+    var label: String
+    var youtubeURL: String
+
+    /// Parses the YouTube video id from the common URL shapes:
+    /// `watch?v=ID`, `youtu.be/ID`, `/embed/ID`, `/shorts/ID`, `/live/ID`.
+    /// Only returns an id when the host is a genuine YouTube host and the id
+    /// matches YouTube's 11-character `[A-Za-z0-9_-]` format.
+    var videoID: String? {
+        guard let components = URLComponents(string: youtubeURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let host = components.host?.lowercased(),
+              isYouTubeHost(host) else {
+            return nil
+        }
+
+        // watch?v=ID
+        if let v = components.queryItems?.first(where: { $0.name == "v" })?.value, isValidID(v) {
+            return v
+        }
+
+        // Path-based forms.
+        let pathSegments = components.path.split(separator: "/").map(String.init)
+        if host == "youtu.be" || host.hasSuffix(".youtu.be"), let first = pathSegments.first, isValidID(first) {
+            return first
+        }
+        if let idx = pathSegments.firstIndex(where: { ["embed", "shorts", "live", "v"].contains($0) }),
+           idx + 1 < pathSegments.count, isValidID(pathSegments[idx + 1]) {
+            return pathSegments[idx + 1]
+        }
+
+        return nil
+    }
+
+    private func isYouTubeHost(_ host: String) -> Bool {
+        host == "youtube.com" || host.hasSuffix(".youtube.com")
+            || host == "youtu.be" || host.hasSuffix(".youtu.be")
+    }
+
+    private func isValidID(_ id: String) -> Bool {
+        id.count == 11 && id.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" }
+    }
+
+    /// hqdefault is always present for valid videos (unlike maxresdefault).
+    var thumbnailURL: URL? {
+        guard let id = videoID else { return nil }
+        return URL(string: "https://img.youtube.com/vi/\(id)/hqdefault.jpg")
+    }
+
+    /// Embed URL with the IFrame JS API enabled so we can drive play/pause programmatically.
+    var embedURL: URL? {
+        guard let id = videoID else { return nil }
+        return URL(string: "https://www.youtube.com/embed/\(id)?autoplay=1&enablejsapi=1&playsinline=1")
+    }
+
+    var isValid: Bool { videoID != nil }
+}
+
 enum CalendarSelectionState: Codable, Defaults.Serializable {
     case all
     case selected(Set<String>)
@@ -218,4 +278,18 @@ extension Defaults.Keys {
     static let screenshotPinnedFolders = Key<[PinnedFolder]>("screenshotPinnedFolders", default: [])
     static let screenshotTrayMaxVisible = Key<Int>("screenshotTrayMaxVisible", default: 12)
     static let screenshotCaptureAnimationEnabled = Key<Bool>("screenshotCaptureAnimationEnabled", default: true)
+
+    // MARK: Pomodoro
+    static let enablePomodoro = Key<Bool>("enablePomodoro", default: true)
+    static let pomodoroFocusMinutes = Key<Double>("pomodoroFocusMinutes", default: 25)
+    static let pomodoroBreakMinutes = Key<Double>("pomodoroBreakMinutes", default: 5)
+    static let pomodoroLongBreakMinutes = Key<Double>("pomodoroLongBreakMinutes", default: 15)
+    static let pomodoroSessionsBeforeLongBreak = Key<Int>("pomodoroSessionsBeforeLongBreak", default: 4)
+    static let pomodoroAutoStartNext = Key<Bool>("pomodoroAutoStartNext", default: true)
+    static let showPomodoroInClosedNotch = Key<Bool>("showPomodoroInClosedNotch", default: true)
+
+    // MARK: Focus Music
+    static let enableFocusMusic = Key<Bool>("enableFocusMusic", default: true)
+    static let focusTracks = Key<[FocusTrack]>("focusTracks", default: [])
+    static let focusMusicPauseOtherMedia = Key<Bool>("focusMusicPauseOtherMedia", default: false)
 }

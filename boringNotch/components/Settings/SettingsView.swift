@@ -54,6 +54,12 @@ struct SettingsView: View {
                 NavigationLink(value: "Screenshots") {
                     Label("Screenshots", systemImage: "camera")
                 }
+                NavigationLink(value: "Pomodoro") {
+                    Label("Pomodoro", systemImage: "timer")
+                }
+                NavigationLink(value: "FocusMusic") {
+                    Label("Focus Music", systemImage: "music.note.list")
+                }
                 NavigationLink(value: "Shortcuts") {
                     Label("Shortcuts", systemImage: "keyboard")
                 }
@@ -93,6 +99,10 @@ struct SettingsView: View {
                     Shelf()
                 case "Screenshots":
                     ScreenshotSettings()
+                case "Pomodoro":
+                    PomodoroSettings()
+                case "FocusMusic":
+                    FocusMusicSettings()
                 case "ClaudeCode":
                     ClaudeCodeSettings()
                 case "Shortcuts":

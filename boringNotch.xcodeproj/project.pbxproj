@@ -376,6 +376,28 @@
 			path = components/Screenshots;
 			sourceTree = "<group>";
 		};
+		A1B2C3D4E5F6000000000001 /* components/Pomodoro */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = components/Pomodoro;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000002 /* components/FocusMusic */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = components/FocusMusic;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -640,6 +662,8 @@
 				112FB72F2CCF12CC0015238C /* private */,
 				11CC44A12CEE614100C7244B /* BoringViewCoordinator.swift */,
 				FED6A1A62305B229CE2F3529 /* components/Screenshots */,
+				A1B2C3D4E5F6000000000001 /* components/Pomodoro */,
+				A1B2C3D4E5F6000000000002 /* components/FocusMusic */,
 			);
 			path = boringNotch;
 			sourceTree = "<group>";
@@ -870,6 +894,8 @@
 			fileSystemSynchronizedGroups = (
 				112FB72F2CCF12CC0015238C /* private */,
 				FED6A1A62305B229CE2F3529 /* components/Screenshots */,
+				A1B2C3D4E5F6000000000001 /* components/Pomodoro */,
+				A1B2C3D4E5F6000000000002 /* components/FocusMusic */,
 			);
 			name = boringNotch;
 			packageProductDependencies = (

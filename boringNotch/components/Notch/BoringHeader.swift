@@ -42,6 +42,42 @@ struct BoringHeader: View {
                         OpenNotchHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon)
                             .transition(.scale(scale: 0.8).combined(with: .opacity))
                     } else {
+                        if Defaults[.enablePomodoro] {
+                            Button(action: {
+                                withAnimation(.smooth) {
+                                    coordinator.currentView = .pomodoro
+                                }
+                            }) {
+                                Capsule()
+                                    .fill(.black)
+                                    .frame(width: 30, height: 30)
+                                    .overlay {
+                                        Image(systemName: "timer")
+                                            .foregroundColor(coordinator.currentView == .pomodoro ? .white : .gray)
+                                            .padding()
+                                            .imageScale(.medium)
+                                    }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        if Defaults[.enableFocusMusic] {
+                            Button(action: {
+                                withAnimation(.smooth) {
+                                    coordinator.currentView = .focusMusic
+                                }
+                            }) {
+                                Capsule()
+                                    .fill(.black)
+                                    .frame(width: 30, height: 30)
+                                    .overlay {
+                                        Image(systemName: "music.note")
+                                            .foregroundColor(coordinator.currentView == .focusMusic ? .white : .gray)
+                                            .padding()
+                                            .imageScale(.medium)
+                                    }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                         if Defaults[.showMirror] {
                             Button(action: {
                                 vm.toggleCameraPreview()
