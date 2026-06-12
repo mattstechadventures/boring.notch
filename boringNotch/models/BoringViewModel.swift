@@ -192,9 +192,18 @@ class BoringViewModel: NSObject, ObservableObject {
     func open() {
         self.notchSize = openNotchSize
         self.notchState = .open
-        
+
         // Force music information update when notch is opened
         MusicManager.shared.forceUpdate()
+
+        // When a focus track is playing, default to the Focus Music tab for quick pause access.
+        // `open()` runs on the main thread for all current callers; the isMainThread guard
+        // keeps `assumeIsolated` from ever crashing if that changes (it just skips the switch).
+        if Defaults[.enableFocusMusic] && Defaults[.focusMusicAutoOpenTab],
+           Thread.isMainThread,
+           MainActor.assumeIsolated({ FocusMusicManager.shared.isPlaying }) {
+            coordinator.currentView = .focusMusic
+        }
     }
 
     func close() {

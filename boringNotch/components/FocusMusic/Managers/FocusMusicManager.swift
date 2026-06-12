@@ -21,6 +21,9 @@ final class FocusMusicManager: NSObject, ObservableObject {
     @Published private(set) var isPlaying: Bool = false
     /// Set when an embed refuses to load / play so the UI can surface it.
     @Published private(set) var loadFailed: Bool = false
+    /// Playback position / length in seconds, reported by the real player.
+    @Published private(set) var currentTime: Double = 0
+    @Published private(set) var duration: Double = 0
 
     /// Hidden web view, retained for the lifetime of the (singleton) manager so audio
     /// is never interrupted by deallocation.
@@ -55,6 +58,8 @@ final class FocusMusicManager: NSObject, ObservableObject {
 
         loadFailed = false
         currentTrack = track
+        currentTime = 0
+        duration = 0
 
         let web = ensureWebView()
         // Load the HTML as if served from a real HTTPS origin so the IFrame API runs.
@@ -76,6 +81,15 @@ final class FocusMusicManager: NSObject, ObservableObject {
         webView?.loadHTMLString("", baseURL: nil)
         isPlaying = false
         currentTrack = nil
+        currentTime = 0
+        duration = 0
+    }
+
+    /// Seek the current track to the given position (seconds).
+    func seek(to seconds: Double) {
+        guard let web = webView else { return }
+        currentTime = seconds
+        web.evaluateJavaScript("window.bnSeek && window.bnSeek(\(seconds));", completionHandler: nil)
     }
 
     func isCurrent(_ track: FocusTrack) -> Bool {
@@ -140,6 +154,15 @@ final class FocusMusicManager: NSObject, ObservableObject {
           window.bnPlay = function(){ try{ if(player&&player.playVideo) player.playVideo(); }catch(e){} };
           window.bnPause = function(){ try{ if(player&&player.pauseVideo) player.pauseVideo(); }catch(e){} };
           window.bnStop = function(){ try{ if(player&&player.stopVideo) player.stopVideo(); }catch(e){} };
+          window.bnSeek = function(s){ try{ if(player&&player.seekTo) player.seekTo(s, true); }catch(e){} };
+          // Report playback position so the seek bar can track it.
+          setInterval(function(){
+            try{
+              if(player && player.getCurrentTime && player.getDuration){
+                post('time:'+player.getCurrentTime()+':'+player.getDuration());
+              }
+            }catch(e){}
+          }, 500);
           var tag = document.createElement('script');
           tag.src = "https://www.youtube.com/iframe_api";
           document.body.appendChild(tag);
@@ -180,6 +203,13 @@ extension FocusMusicManager: WKScriptMessageHandler {
                 self.loadFailed = false
             case "paused", "ended":
                 self.isPlaying = false
+            case let s where s.hasPrefix("time:"):
+                // "time:<current>:<duration>"
+                let parts = s.dropFirst("time:".count).split(separator: ":")
+                if parts.count == 2, let cur = Double(parts[0]), let dur = Double(parts[1]) {
+                    self.duration = dur
+                    self.currentTime = cur
+                }
             case let s where s.hasPrefix("error"):
                 self.loadFailed = true
                 self.isPlaying = false

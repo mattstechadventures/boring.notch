@@ -38,7 +38,7 @@ struct FocusMusicView: View {
                 }
 
                 if manager.currentTrack != nil {
-                    nowPlayingStrip
+                    FocusNowPlaying(manager: manager)
                 }
 
                 if manager.loadFailed {
@@ -80,27 +80,75 @@ struct FocusMusicView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var nowPlayingStrip: some View {
+}
+
+/// Rich now-playing block mirroring the Spotify player: cover art, animated pulse,
+/// a draggable seek bar, and transport controls.
+private struct FocusNowPlaying: View {
+    @ObservedObject var manager: FocusMusicManager
+
+    @State private var sliderValue: Double = 0
+    @State private var dragging: Bool = false
+    @State private var lastDragged: Date = .distantPast
+
+    var body: some View {
         HStack(spacing: 12) {
-            Text(manager.currentTrack?.label ?? "")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white)
-                .lineLimit(1)
+            // Cover art
+            AsyncImage(url: manager.currentTrack?.thumbnailURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().aspectRatio(contentMode: .fill)
+                default:
+                    Rectangle()
+                        .fill(Color(nsColor: .secondarySystemFill))
+                        .overlay { Image(systemName: "music.note").foregroundStyle(.secondary) }
+                }
+            }
+            .frame(width: 64, height: 64)
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Text(manager.currentTrack?.label ?? "")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                    AudioSpectrumView(isPlaying: .constant(manager.isPlaying))
+                        .frame(width: 16, height: 12)
+                        .opacity(manager.isPlaying ? 1 : 0.3)
+                    Spacer(minLength: 0)
+                }
 
-            Button {
-                manager.togglePlayPause()
-            } label: {
+                // Seek bar
+                CustomSlider(
+                    value: $sliderValue,
+                    range: 0...max(1, manager.duration),
+                    color: .white,
+                    dragging: $dragging,
+                    lastDragged: $lastDragged,
+                    onValueChange: { manager.seek(to: $0) }
+                )
+                .frame(height: 10)
+
+                HStack {
+                    Text(timeString(sliderValue))
+                    Spacer()
+                    Text(timeString(manager.duration))
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
+
+            // Transport
+            Button { manager.togglePlayPause() } label: {
                 Image(systemName: manager.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white)
             }
             .buttonStyle(.plain)
 
-            Button {
-                manager.stop()
-            } label: {
+            Button { manager.stop() } label: {
                 Image(systemName: "stop.fill")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.secondary)
@@ -108,6 +156,22 @@ struct FocusMusicView: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
+        // Track the live position unless the user is actively scrubbing.
+        .onChange(of: manager.currentTime) { _, newValue in
+            guard !dragging, lastDragged.timeIntervalSinceNow < -1 else { return }
+            sliderValue = newValue
+        }
+        // Reset the bar deterministically when a different track starts.
+        .onChange(of: manager.currentTrack?.id) { _, _ in
+            sliderValue = 0
+            lastDragged = .distantPast
+        }
+    }
+
+    private func timeString(_ seconds: Double) -> String {
+        guard seconds.isFinite, seconds >= 0 else { return "0:00" }
+        let total = Int(seconds)
+        return String(format: "%d:%02d", total / 60, total % 60)
     }
 }
 

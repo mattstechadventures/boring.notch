@@ -25,6 +25,9 @@ struct FocusMusicSettings: View {
                 Defaults.Toggle(key: .focusMusicPauseOtherMedia) {
                     Text("Pause other media when a focus track starts")
                 }
+                Defaults.Toggle(key: .focusMusicAutoOpenTab) {
+                    Text("Open Focus Music tab when playing")
+                }
             } header: {
                 Text("General")
             } footer: {

@@ -292,4 +292,5 @@ extension Defaults.Keys {
     static let enableFocusMusic = Key<Bool>("enableFocusMusic", default: true)
     static let focusTracks = Key<[FocusTrack]>("focusTracks", default: [])
     static let focusMusicPauseOtherMedia = Key<Bool>("focusMusicPauseOtherMedia", default: false)
+    static let focusMusicAutoOpenTab = Key<Bool>("focusMusicAutoOpenTab", default: true)
 }
