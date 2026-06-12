@@ -13,14 +13,17 @@ struct FocusMusicView: View {
     @ObservedObject private var manager = FocusMusicManager.shared
     @Default(.focusTracks) private var tracks
 
+    // Only tracks the user has left enabled (eye open) appear in the notch.
+    private var visibleTracks: [FocusTrack] { tracks.filter(\.isEnabled) }
+
     var body: some View {
         VStack(spacing: 10) {
-            if tracks.isEmpty {
+            if visibleTracks.isEmpty {
                 emptyState
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        ForEach(tracks) { track in
+                        ForEach(visibleTracks) { track in
                             TrackCover(
                                 track: track,
                                 isCurrent: manager.isCurrent(track),

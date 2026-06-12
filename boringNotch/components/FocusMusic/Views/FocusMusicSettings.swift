@@ -11,7 +11,6 @@ struct FocusMusicSettings: View {
     @Default(.focusTracks) var focusTracks
     @Default(.focusMusicPauseOtherMedia) var pauseOtherMedia
 
-    @State private var selectedTrack: FocusTrack?
     @State private var isPresented: Bool = false
     @State private var label: String = ""
     @State private var url: String = ""
@@ -38,8 +37,8 @@ struct FocusMusicSettings: View {
 
             Section {
                 List {
-                    ForEach(focusTracks) { track in
-                        HStack {
+                    ForEach($focusTracks) { $track in
+                        HStack(spacing: 8) {
                             AsyncImage(url: track.thumbnailURL) { phase in
                                 switch phase {
                                 case .success(let image):
@@ -52,52 +51,61 @@ struct FocusMusicSettings: View {
                             }
                             .frame(width: 56, height: 34)
                             .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .opacity(track.isEnabled ? 1 : 0.4)
 
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(track.label)
+                                TextField("Label", text: $track.label)
+                                    .textFieldStyle(.plain)
+                                    .foregroundStyle(track.isEnabled ? .primary : .secondary)
                                 if !track.isValid {
                                     Text("Invalid YouTube link")
                                         .font(.caption2)
                                         .foregroundStyle(.orange)
                                 }
                             }
+
                             Spacer(minLength: 0)
+
+                            // Visibility toggle — controls whether the track appears in the notch list.
+                            Button {
+                                $track.isEnabled.wrappedValue.toggle()
+                            } label: {
+                                Image(systemName: track.isEnabled ? "eye" : "eye.slash")
+                                    .foregroundStyle(track.isEnabled ? Color.effectiveAccent : .secondary)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.borderless)
+                            .help(track.isEnabled ? "Shown in notch — click to hide" : "Hidden from notch — click to show")
+
+                            Button {
+                                focusTracks.removeAll { $0.id == track.id }
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundStyle(.secondary)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Remove track")
                         }
-                        .contentShape(Rectangle())
                         .padding(.vertical, 2)
-                        .background(
-                            selectedTrack == track ? Color.effectiveAccent.opacity(0.25) : Color.clear,
-                            in: RoundedRectangle(cornerRadius: 5)
-                        )
-                        .onTapGesture {
-                            selectedTrack = (selectedTrack == track) ? nil : track
-                        }
+                    }
+                    .onMove { from, to in
+                        focusTracks.move(fromOffsets: from, toOffset: to)
                     }
                 }
                 .frame(minHeight: 120)
                 .actionBar {
-                    HStack(spacing: 5) {
-                        Button {
-                            label = ""
-                            url = ""
-                            isPresented.toggle()
-                        } label: {
+                    Button {
+                        label = ""
+                        url = ""
+                        isPresented.toggle()
+                    } label: {
+                        HStack(spacing: 3) {
                             Image(systemName: "plus")
-                                .foregroundStyle(.secondary)
-                                .contentShape(Rectangle())
+                            Text("Add track")
                         }
-                        Divider()
-                        Button {
-                            if let track = selectedTrack,
-                               let idx = focusTracks.firstIndex(of: track) {
-                                focusTracks.remove(at: idx)
-                                selectedTrack = nil
-                            }
-                        } label: {
-                            Image(systemName: "minus")
-                                .foregroundStyle(.secondary)
-                                .contentShape(Rectangle())
-                        }
+                        .foregroundStyle(.secondary)
+                        .contentShape(Rectangle())
                     }
                 }
                 .controlSize(.small)
@@ -121,7 +129,7 @@ struct FocusMusicSettings: View {
                     }
                 }
             } footer: {
-                Text("Paste a YouTube link (watch, youtu.be, or embed). The video thumbnail becomes the cover.")
+                Text("Paste a YouTube link (watch, youtu.be, or embed) — the thumbnail becomes the cover. Edit a label inline, drag to reorder, and use the eye to hide a track from the notch without deleting it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

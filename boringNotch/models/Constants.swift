@@ -31,6 +31,27 @@ struct FocusTrack: Codable, Hashable, Equatable, Identifiable, Defaults.Serializ
     var id: UUID = UUID()
     var label: String
     var youtubeURL: String
+    /// Whether this track is shown in the in-notch list. Disabled tracks remain in Settings.
+    var isEnabled: Bool = true
+
+    init(id: UUID = UUID(), label: String, youtubeURL: String, isEnabled: Bool = true) {
+        self.id = id
+        self.label = label
+        self.youtubeURL = youtubeURL
+        self.isEnabled = isEnabled
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, label, youtubeURL, isEnabled }
+
+    // Custom decode so adding `isEnabled` doesn't fail to decode tracks saved before it
+    // existed (a throw would wipe the whole persisted array).
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        label = try c.decode(String.self, forKey: .label)
+        youtubeURL = try c.decode(String.self, forKey: .youtubeURL)
+        isEnabled = try c.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+    }
 
     /// Parses the YouTube video id from the common URL shapes:
     /// `watch?v=ID`, `youtu.be/ID`, `/embed/ID`, `/shorts/ID`, `/live/ID`.
