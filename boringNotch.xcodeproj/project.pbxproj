@@ -332,7 +332,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		11F7485C2EC9AABA00F841DB /* Exceptions for "BoringNotchXPCHelper" folder in "BoringNotchXPCHelper" target */ = {
+		11F7485C2EC9AABA00F841DB /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -342,62 +342,12 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		112FB72F2CCF12CC0015238C /* private */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = private;
-			sourceTree = "<group>";
-		};
-		11F748502EC9AABA00F841DB /* BoringNotchXPCHelper */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				11F7485C2EC9AABA00F841DB /* Exceptions for "BoringNotchXPCHelper" folder in "BoringNotchXPCHelper" target */,
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = BoringNotchXPCHelper;
-			sourceTree = "<group>";
-		};
-		FED6A1A62305B229CE2F3529 /* components/Screenshots */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = components/Screenshots;
-			sourceTree = "<group>";
-		};
-		A1B2C3D4E5F6000000000001 /* components/Pomodoro */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = components/Pomodoro;
-			sourceTree = "<group>";
-		};
-		A1B2C3D4E5F6000000000002 /* components/FocusMusic */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = components/FocusMusic;
-			sourceTree = "<group>";
-		};
+		112FB72F2CCF12CC0015238C /* private */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = private; sourceTree = "<group>"; };
+		11F748502EC9AABA00F841DB /* BoringNotchXPCHelper */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (11F7485C2EC9AABA00F841DB /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = BoringNotchXPCHelper; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000001 /* components/Pomodoro */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = components/Pomodoro; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000002 /* components/FocusMusic */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = components/FocusMusic; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000003 /* components/UtilityPanels */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = components/UtilityPanels; sourceTree = "<group>"; };
+		FED6A1A62305B229CE2F3529 /* components/Screenshots */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = components/Screenshots; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -664,6 +614,7 @@
 				FED6A1A62305B229CE2F3529 /* components/Screenshots */,
 				A1B2C3D4E5F6000000000001 /* components/Pomodoro */,
 				A1B2C3D4E5F6000000000002 /* components/FocusMusic */,
+				A1B2C3D4E5F6000000000003 /* components/UtilityPanels */,
 			);
 			path = boringNotch;
 			sourceTree = "<group>";
@@ -730,7 +681,6 @@
 				2A4AB1C45F3D1509FBC5A92B /* ToolActivityIndicator.swift */,
 				57DA740FE705D02BA7CCDE9D /* SessionListView.swift */,
 			);
-			name = ClaudeCode;
 			path = ClaudeCode;
 			sourceTree = "<group>";
 		};
@@ -893,9 +843,10 @@
 			);
 			fileSystemSynchronizedGroups = (
 				112FB72F2CCF12CC0015238C /* private */,
-				FED6A1A62305B229CE2F3529 /* components/Screenshots */,
 				A1B2C3D4E5F6000000000001 /* components/Pomodoro */,
 				A1B2C3D4E5F6000000000002 /* components/FocusMusic */,
+				A1B2C3D4E5F6000000000003 /* components/UtilityPanels */,
+				FED6A1A62305B229CE2F3529 /* components/Screenshots */,
 			);
 			name = boringNotch;
 			packageProductDependencies = (

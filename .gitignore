@@ -28,6 +28,7 @@ DerivedData/
 
 # Build output
 build/
+build_run/
 *.app
 *.dSYM
 
