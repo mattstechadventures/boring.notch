@@ -110,11 +110,31 @@ final class FilesViewModel: ObservableObject {
         guard let pin = selectedPin else { return }
         _ = Bookmark(data: pin.bookmark).withAccess { dir in
             for src in urls {
-                let target = dir.appendingPathComponent(src.lastPathComponent)
-                try? FileManager.default.copyItem(at: src, to: target)
+                let target = uniqueDestination(for: src, in: dir)
+                do {
+                    try FileManager.default.copyItem(at: src, to: target)
+                } catch {
+                    NSLog("FilesViewModel: import failed for \(src.lastPathComponent): \(error.localizedDescription)")
+                }
             }
         }
         reloadContents()
+    }
+
+    /// A non-colliding destination URL inside `dir` for an imported file,
+    /// appending " 2", " 3", … before the extension if needed.
+    private func uniqueDestination(for src: URL, in dir: URL) -> URL {
+        var target = dir.appendingPathComponent(src.lastPathComponent)
+        guard FileManager.default.fileExists(atPath: target.path) else { return target }
+        let base = src.deletingPathExtension().lastPathComponent
+        let ext = src.pathExtension
+        var n = 2
+        repeat {
+            let name = ext.isEmpty ? "\(base) \(n)" : "\(base) \(n).\(ext)"
+            target = dir.appendingPathComponent(name)
+            n += 1
+        } while FileManager.default.fileExists(atPath: target.path)
+        return target
     }
 
     func icon(for url: URL) -> NSImage {

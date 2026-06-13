@@ -38,7 +38,7 @@ final class HeaderLayoutManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.recompute() }
+            Task { @MainActor in self?.recompute() }
         }
     }
 
@@ -100,12 +100,23 @@ final class HeaderLayoutManager: ObservableObject {
 
     // MARK: - Editor operations
 
-    /// Enabled panels currently placed on a side, in order. (Order arrays are
-    /// rewritten from this enabled view on edit, so disabled panels drop out of
-    /// the arrangement and reappear in the palette when re-enabled.)
+    /// Enabled panels currently placed on a side, in order. Disabled panels stay
+    /// in the persisted order arrays (just hidden from the editor) so disabling
+    /// and re-enabling a panel preserves its slot position.
     func arranged(_ side: PanelSide) -> [PanelID] {
         let order = side == .left ? Defaults[.headerLeftOrder] : Defaults[.headerRightOrder]
         return order.filter { PanelRegistry.shared.descriptor(for: $0)?.isEnabled == true }
+    }
+
+    /// Raw insertion index in `order` corresponding to the `visibleIndex`-th
+    /// enabled (editor-visible) slot, so placing preserves interleaved disabled ids.
+    private func rawInsertIndex(in order: [PanelID], visibleIndex: Int) -> Int {
+        var seen = 0
+        for (i, id) in order.enumerated() {
+            if seen == visibleIndex { return i }
+            if PanelRegistry.shared.descriptor(for: id)?.isEnabled == true { seen += 1 }
+        }
+        return order.count
     }
 
     /// Enabled panels not currently placed on either side (the editor palette).
@@ -116,17 +127,18 @@ final class HeaderLayoutManager: ObservableObject {
             .map(\.id)
     }
 
-    /// Place (or move/reorder) a panel into `side` at `index`. Removes it from
-    /// wherever it currently is first.
+    /// Place (or move/reorder) a panel into `side` at the given editor-visible
+    /// `index`. Operates on the raw order arrays so interleaved disabled panels
+    /// keep their positions.
     func place(_ id: PanelID, side: PanelSide, at index: Int) {
-        var left = arranged(.left)
-        var right = arranged(.right)
+        var left = Defaults[.headerLeftOrder]
+        var right = Defaults[.headerRightOrder]
         left.removeAll { $0 == id }
         right.removeAll { $0 == id }
         if side == .left {
-            left.insert(id, at: min(max(0, index), left.count))
+            left.insert(id, at: rawInsertIndex(in: left, visibleIndex: index))
         } else {
-            right.insert(id, at: min(max(0, index), right.count))
+            right.insert(id, at: rawInsertIndex(in: right, visibleIndex: index))
         }
         Defaults[.headerLeftOrder] = left
         Defaults[.headerRightOrder] = right
@@ -135,8 +147,8 @@ final class HeaderLayoutManager: ObservableObject {
     /// Remove a panel from the header (back to the palette). Pinned panels stay.
     func removeFromHeader(_ id: PanelID) {
         guard PanelRegistry.shared.descriptor(for: id)?.isPinnable != true else { return }
-        var left = arranged(.left)
-        var right = arranged(.right)
+        var left = Defaults[.headerLeftOrder]
+        var right = Defaults[.headerRightOrder]
         left.removeAll { $0 == id }
         right.removeAll { $0 == id }
         Defaults[.headerLeftOrder] = left
