@@ -49,7 +49,7 @@ Carry over the three hard lessons from the original doc §4 (they still apply ve
 | D5 | Elastic padding | **Per-side toggle.** Slack distributed as inter-icon gap up to `maxGap`; group anchored to the outer edge (packs away from the notch). |
 | D6 | Management UI | **Settings-only**, per-side independent, **drag-to-slot** editor with ghost squares, a palette of unplaced panels, and a **WYSIWYG notch preview**. |
 | D7 | Left/right semantics | **Free placement** (personal preference) — no enforced nav-left/tools-right rule. |
-| D8 | Always-on cores | **Home is pinnable** (default-on, un-removable) so you can't configure away navigation. Everything else free. |
+| D8 | Always-on cores | **Home and Settings are pinnable** — default-on, un-removable, **but still movable/reorderable** — so you can't configure away navigation or access to settings. Everything else free. |
 | D9 | Per-feature settings | Each panel owns **its own settings section** (registry-driven), not one shared "Modules" page. |
 | D10 | Default-view | A **default-open policy** (fixed / last-viewed / smart-active-context) that unifies today's scattered `focusMusicAutoOpenTab` / `openShelfByDefault` / `openLastTabByDefault` flags. |
 
@@ -93,7 +93,7 @@ struct PanelDescriptor: Identifiable {
     let icon: String                      // SF Symbol
     let kind: PanelKind
     let defaultSide: PanelSide
-    let isPinnable: Bool                  // Home = true
+    let isPinnable: Bool                  // Home, Settings = true (un-removable, still movable)
     let enableKey: Defaults.Key<Bool>?    // per-panel on/off (nil = always available)
     let isActiveContext: () -> Bool       // for smart default-view (e.g. FocusMusic.isPlaying)
     let settingsSection: (() -> AnyView)? // per-feature settings page (§3.F)
@@ -177,7 +177,8 @@ A SwiftUI editor in the new "Notch Layout" settings section:
   (capacity from §3.C), with the **`NotchShape` drawn between them** so it reads as the actual notch.
 - A **palette** below: chips for every enabled-but-unplaced panel.
 - **Drag** a chip from palette → a ghost slot to place; **drag between slots** to reorder / move
-  side; **drag back to palette** to remove (pinned Home can't be removed — D8).
+  side; **drag back to palette** to remove (pinned **Home and Settings** can be moved/reordered but
+  not removed — D8).
 - **Live preview** reflects elastic padding (§3.E) and the per-side elastic toggles, so it's WYSIWYG.
 - Per-side controls: **elastic on/off** and **MAX = used slot count** (≤ capacity, D4).
 - Reuse the reorder interaction already built for Focus Music list management (recent commit
@@ -335,7 +336,9 @@ Task/note connectors & sync, LLM note titles, clipboard image persistence, a "mo
 
 ## 9. Open questions
 1. `maxGap` exact value — tune visually in Phase 2 against the screenshot's left-cluster feel.
-2. Should **battery/webcam/settings** be user-movable in the editor, or fixed anchors on the right?
-   (Plan assumes movable indicators/actions; settings-gear is often expected far-right.)
-3. Default `defaultViewPolicy` — plan defaults to `.smart` (preserves today's music-auto-open feel);
-   confirm vs. `.fixed(.home)`.
+
+### Resolved
+- **Settings-gear** is **pinnable (required) but movable** — same as Home (D8). **webcam/battery**
+  are movable *and* removable via their enable keys.
+- **`defaultViewPolicy` defaults to `.smart`** (preserves today's music-auto-open feel as a
+  configurable rule).
