@@ -84,5 +84,8 @@ final class PanelRegistry: ObservableObject {
         register(.init(id: .tasks, label: "Tasks", icon: "checklist",
                        kind: .view(.tasks), defaultSide: .left,
                        enableKey: .enableTasks))
+        register(.init(id: .clipboard, label: "Clipboard", icon: "doc.on.clipboard",
+                       kind: .view(.clipboard), defaultSide: .right,
+                       enableKey: .enableClipboard))
     }
 }

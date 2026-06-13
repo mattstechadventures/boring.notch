@@ -398,6 +398,8 @@ struct ContentView: View {
                         NotesView()
                     case .tasks:
                         TasksView()
+                    case .clipboard:
+                        ClipboardView()
                     }
                 }
                 .transition(

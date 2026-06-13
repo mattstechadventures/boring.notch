@@ -318,6 +318,8 @@ extension Defaults.Keys {
     // MARK: Utility Panels
     static let enableNotes = Key<Bool>("enableNotes", default: true)
     static let enableTasks = Key<Bool>("enableTasks", default: true)
+    static let enableClipboard = Key<Bool>("enableClipboard", default: true)
+    static let clipboardHistoryLimit = Key<Int>("clipboardHistoryLimit", default: 50)
 
     // MARK: Notch Header Layout
     // Ordered slot arrangement per side (left-to-right = priority for capacity
@@ -325,7 +327,7 @@ extension Defaults.Keys {
     // New utility panels are appended last so they clamp out first on narrow
     // displays — existing items are never pushed off.
     static let headerLeftOrder = Key<[PanelID]>("headerLeftOrder", default: [.home, .shelf, .screenshots, .claudeCode, .notes, .tasks])
-    static let headerRightOrder = Key<[PanelID]>("headerRightOrder", default: [.pomodoro, .focusMusic, .webcam, .settings, .battery])
+    static let headerRightOrder = Key<[PanelID]>("headerRightOrder", default: [.pomodoro, .focusMusic, .webcam, .settings, .battery, .clipboard])
     // Per-side cap on visible slots (0 = use full geometric capacity).
     static let headerLeftMax = Key<Int>("headerLeftMax", default: 0)
     static let headerRightMax = Key<Int>("headerRightMax", default: 0)

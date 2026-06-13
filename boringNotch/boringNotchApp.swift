@@ -439,6 +439,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         previousScreens = NSScreen.screens
 
         ScreenshotManager.shared.start()
+        ClipboardManager.shared.start()
     }
 
     func playWelcomeSound() {
