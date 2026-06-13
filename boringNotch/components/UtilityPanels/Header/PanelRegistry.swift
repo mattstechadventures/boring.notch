@@ -35,6 +35,12 @@ final class PanelRegistry: ObservableObject {
         descriptors[id]
     }
 
+    /// Reverse lookup: the panel that opens a given notch view (for persisting
+    /// the last-viewed panel).
+    func panelID(forView view: NotchViews) -> PanelID? {
+        all.first { $0.destination == view }?.id
+    }
+
     var all: [PanelDescriptor] {
         order.compactMap { descriptors[$0] }
     }
@@ -50,7 +56,8 @@ final class PanelRegistry: ObservableObject {
                        kind: .view(.home), defaultSide: .left, isPinnable: true))
         register(.init(id: .shelf, label: "Shelf", icon: "tray.fill",
                        kind: .view(.shelf), defaultSide: .left,
-                       isActiveContext: { !ShelfStateViewModel.shared.isEmpty }))
+                       isActiveContext: { !ShelfStateViewModel.shared.isEmpty && Defaults[.openShelfByDefault] },
+                       contextPriority: 10))
         register(.init(id: .screenshots, label: "Screenshots", icon: "camera.fill",
                        kind: .view(.screenshots), defaultSide: .left))
         register(.init(id: .claudeCode, label: "Claude", icon: "terminal.fill",
@@ -63,7 +70,8 @@ final class PanelRegistry: ObservableObject {
         register(.init(id: .focusMusic, label: "Focus Music", icon: "music.note",
                        kind: .view(.focusMusic), defaultSide: .right,
                        enableKey: .enableFocusMusic,
-                       isActiveContext: { FocusMusicManager.shared.isPlaying }))
+                       isActiveContext: { FocusMusicManager.shared.isPlaying && Defaults[.focusMusicAutoOpenTab] },
+                       contextPriority: 20))
         register(.init(id: .webcam, label: "Mirror", icon: "web.camera",
                        kind: .toggleWebcam, defaultSide: .right,
                        enableKey: .showMirror))

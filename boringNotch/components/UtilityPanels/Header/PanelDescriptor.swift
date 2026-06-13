@@ -48,6 +48,8 @@ struct PanelDescriptor: Identifiable {
     /// True when this panel currently has "active context" — used by the
     /// `.smart` default-view policy (e.g. Focus Music while a track plays).
     let isActiveContext: @MainActor () -> Bool
+    /// Tie-break among active-context panels under `.smart` (higher wins).
+    let contextPriority: Int
 
     init(
         id: PanelID,
@@ -57,7 +59,8 @@ struct PanelDescriptor: Identifiable {
         defaultSide: PanelSide,
         isPinnable: Bool = false,
         enableKey: Defaults.Key<Bool>? = nil,
-        isActiveContext: @escaping @MainActor () -> Bool = { false }
+        isActiveContext: @escaping @MainActor () -> Bool = { false },
+        contextPriority: Int = 0
     ) {
         self.id = id
         self.label = label
@@ -67,6 +70,7 @@ struct PanelDescriptor: Identifiable {
         self.isPinnable = isPinnable
         self.enableKey = enableKey
         self.isActiveContext = isActiveContext
+        self.contextPriority = contextPriority
     }
 
     /// The notch view this opens, if it's a `.view` kind.

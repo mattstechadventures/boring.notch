@@ -196,13 +196,10 @@ class BoringViewModel: NSObject, ObservableObject {
         // Force music information update when notch is opened
         MusicManager.shared.forceUpdate()
 
-        // When a focus track is playing, default to the Focus Music tab for quick pause access.
-        // `open()` runs on the main thread for all current callers; the isMainThread guard
-        // keeps `assumeIsolated` from ever crashing if that changes (it just skips the switch).
-        if Defaults[.enableFocusMusic] && Defaults[.focusMusicAutoOpenTab],
-           Thread.isMainThread,
-           MainActor.assumeIsolated({ FocusMusicManager.shared.isPlaying }) {
-            coordinator.currentView = .focusMusic
+        // Resolve the configured default-view policy (fixed / last-viewed / smart).
+        // `.smart` reproduces the prior Focus-Music / Shelf auto-open behaviour.
+        if let view = Defaults[.defaultViewPolicy].resolve() {
+            coordinator.currentView = view
         }
     }
 
@@ -218,12 +215,10 @@ class BoringViewModel: NSObject, ObservableObject {
         self.coordinator.sneakPeek.show = false
         self.edgeAutoOpenActive = false
 
-        // Set the current view to shelf if it contains files and the user enables openShelfByDefault
-        // Otherwise, if the user has not enabled openLastShelfByDefault, set the view to home
-    if !ShelfStateViewModel.shared.isEmpty && Defaults[.openShelfByDefault] {
-            coordinator.currentView = .shelf
-        } else if !coordinator.openLastTabByDefault {
-            coordinator.currentView = .home
+        // Remember the last-viewed panel for the `.lastViewed` default-view policy.
+        // What the notch shows on next open is decided by the policy in `open()`.
+        if let id = PanelRegistry.shared.panelID(forView: coordinator.currentView) {
+            Defaults[.lastView] = id
         }
     }
 

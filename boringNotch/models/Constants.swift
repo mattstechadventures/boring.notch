@@ -336,4 +336,11 @@ extension Defaults.Keys {
     // Elastic inter-icon padding per side.
     static let headerLeftElastic = Key<Bool>("headerLeftElastic", default: true)
     static let headerRightElastic = Key<Bool>("headerRightElastic", default: true)
+
+    // MARK: Default View
+    // What the notch shows when it opens. `.smart` reproduces today's behaviour
+    // (Focus Music when playing, else Shelf when it has items, else fallback).
+    static let defaultViewPolicy = Key<DefaultViewPolicy>("defaultViewPolicy", default: .smart)
+    static let defaultViewFallback = Key<PanelID>("defaultViewFallback", default: .home)
+    static let lastView = Key<PanelID>("lastView", default: .home)
 }
