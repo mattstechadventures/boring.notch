@@ -394,6 +394,10 @@ struct ContentView: View {
                         PomodoroView()
                     case .focusMusic:
                         FocusMusicView()
+                    case .notes:
+                        NotesView()
+                    case .tasks:
+                        TasksView()
                     }
                 }
                 .transition(

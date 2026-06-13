@@ -315,10 +315,16 @@ extension Defaults.Keys {
     static let focusMusicPauseOtherMedia = Key<Bool>("focusMusicPauseOtherMedia", default: false)
     static let focusMusicAutoOpenTab = Key<Bool>("focusMusicAutoOpenTab", default: true)
 
+    // MARK: Utility Panels
+    static let enableNotes = Key<Bool>("enableNotes", default: true)
+    static let enableTasks = Key<Bool>("enableTasks", default: true)
+
     // MARK: Notch Header Layout
     // Ordered slot arrangement per side (left-to-right = priority for capacity
     // clamping). This is the user's *intent*; rendering clamps to live geometry.
-    static let headerLeftOrder = Key<[PanelID]>("headerLeftOrder", default: [.home, .shelf, .screenshots, .claudeCode])
+    // New utility panels are appended last so they clamp out first on narrow
+    // displays — existing items are never pushed off.
+    static let headerLeftOrder = Key<[PanelID]>("headerLeftOrder", default: [.home, .shelf, .screenshots, .claudeCode, .notes, .tasks])
     static let headerRightOrder = Key<[PanelID]>("headerRightOrder", default: [.pomodoro, .focusMusic, .webcam, .settings, .battery])
     // Per-side cap on visible slots (0 = use full geometric capacity).
     static let headerLeftMax = Key<Int>("headerLeftMax", default: 0)

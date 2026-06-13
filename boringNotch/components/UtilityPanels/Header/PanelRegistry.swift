@@ -21,6 +21,7 @@ final class PanelRegistry: ObservableObject {
 
     private init() {
         registerLegacyPanels()
+        registerUtilityPanels()
     }
 
     func register(_ descriptor: PanelDescriptor) {
@@ -72,5 +73,16 @@ final class PanelRegistry: ObservableObject {
         register(.init(id: .battery, label: "Battery", icon: "battery.100",
                        kind: .batteryIndicator, defaultSide: .right,
                        enableKey: .showBatteryIndicator))
+    }
+
+    // MARK: - Utility panel registrations
+
+    private func registerUtilityPanels() {
+        register(.init(id: .notes, label: "Notes", icon: "note.text",
+                       kind: .view(.notes), defaultSide: .left,
+                       enableKey: .enableNotes))
+        register(.init(id: .tasks, label: "Tasks", icon: "checklist",
+                       kind: .view(.tasks), defaultSide: .left,
+                       enableKey: .enableTasks))
     }
 }
