@@ -400,6 +400,8 @@ struct ContentView: View {
                         TasksView()
                     case .clipboard:
                         ClipboardView()
+                    case .files:
+                        FilesView()
                     }
                 }
                 .transition(

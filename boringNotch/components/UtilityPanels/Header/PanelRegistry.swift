@@ -87,5 +87,8 @@ final class PanelRegistry: ObservableObject {
         register(.init(id: .clipboard, label: "Clipboard", icon: "doc.on.clipboard",
                        kind: .view(.clipboard), defaultSide: .right,
                        enableKey: .enableClipboard))
+        register(.init(id: .files, label: "Files", icon: "folder.fill",
+                       kind: .view(.files), defaultSide: .right,
+                       enableKey: .enableFiles))
     }
 }
