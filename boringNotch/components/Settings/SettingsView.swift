@@ -48,6 +48,21 @@ struct SettingsView: View {
 //                NavigationLink(value: "Downloads") {
 //                    Label("Downloads", systemImage: "square.and.arrow.down")
 //                }
+                NavigationLink(value: "NotchLayout") {
+                    Label("Notch Layout", systemImage: "rectangle.topthird.inset.filled")
+                }
+                NavigationLink(value: "Notes") {
+                    Label("Notes", systemImage: "note.text")
+                }
+                NavigationLink(value: "Tasks") {
+                    Label("Tasks", systemImage: "checklist")
+                }
+                NavigationLink(value: "Clipboard") {
+                    Label("Clipboard", systemImage: "doc.on.clipboard")
+                }
+                NavigationLink(value: "Files") {
+                    Label("Files", systemImage: "folder")
+                }
                 NavigationLink(value: "Shelf") {
                     Label("Shelf", systemImage: "books.vertical")
                 }
@@ -95,6 +110,16 @@ struct SettingsView: View {
                     HUD()
                 case "Battery":
                     Charge()
+                case "NotchLayout":
+                    NotchLayoutSettings()
+                case "Notes":
+                    NotesSettings()
+                case "Tasks":
+                    TasksSettings()
+                case "Clipboard":
+                    ClipboardSettings()
+                case "Files":
+                    FilesSettings()
                 case "Shelf":
                     Shelf()
                 case "Screenshots":
