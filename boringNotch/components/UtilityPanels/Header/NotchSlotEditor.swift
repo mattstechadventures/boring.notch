@@ -30,12 +30,10 @@ struct NotchSlotEditor: View {
                 .padding(.vertical, 6)
             }
 
-            if !layout.paletteIDs.isEmpty {
-                Text("Available").font(.caption).foregroundStyle(.secondary)
-                paletteView
-            }
+            Text("Available").font(.caption).foregroundStyle(.secondary)
+            paletteView
 
-            Text("Drag icons into the slots on either side of the notch. Faded slots won't fit on this display. Drag back here to remove (Home and Settings can be moved but not removed).")
+            Text("Drag icons into the slots on either side of the notch. Faded slots won't fit on this display. Drag back to Available to remove (Home and Settings can be moved but not removed).")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -94,29 +92,47 @@ struct NotchSlotEditor: View {
 
     // MARK: Palette
 
+    @State private var paletteTargeted = false
+
     private var paletteView: some View {
         let columns = [GridItem(.adaptive(minimum: slotSize + 6), spacing: 6)]
-        return LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
-            ForEach(layout.paletteIDs, id: \.self) { id in
-                if let descriptor = PanelRegistry.shared.descriptor(for: id) {
-                    VStack(spacing: 2) {
-                        Image(systemName: descriptor.icon).imageScale(.medium)
-                        Text(descriptor.label).font(.system(size: 8)).lineLimit(1)
+        return Group {
+            if layout.paletteIDs.isEmpty {
+                Text("Drop an icon here to remove it from the notch")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: slotSize, alignment: .center)
+            } else {
+                LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
+                    ForEach(layout.paletteIDs, id: \.self) { id in
+                        if let descriptor = PanelRegistry.shared.descriptor(for: id) {
+                            VStack(spacing: 2) {
+                                Image(systemName: descriptor.icon).imageScale(.medium)
+                                Text(descriptor.label).font(.system(size: 8)).lineLimit(1)
+                            }
+                            .frame(width: slotSize, height: slotSize)
+                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.08)))
+                            .draggable(descriptor.id.rawValue)
+                        }
                     }
-                    .frame(width: slotSize, height: slotSize)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.08)))
-                    .draggable(descriptor.id.rawValue)
                 }
             }
         }
         .padding(8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
+        .frame(maxWidth: .infinity, minHeight: slotSize + 16, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.secondary.opacity(paletteTargeted ? 0.18 : 0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [5]))
+                .foregroundStyle(.secondary.opacity(paletteTargeted ? 0.7 : 0.35))
+        )
         .dropDestination(for: String.self) { items, _ in
             guard let raw = items.first, let id = PanelID(rawValue: raw) else { return false }
             layout.removeFromHeader(id)
             return true
-        }
+        } isTargeted: { paletteTargeted = $0 }
     }
 
     // MARK: Mini notch
