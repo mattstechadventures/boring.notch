@@ -41,19 +41,19 @@ final class PanelRegistry: ObservableObject {
     // MARK: - Legacy registrations
 
     private func registerLegacyPanels() {
-        // Navigation tabs (left cluster today).
+        // Navigation tabs (left cluster today). enableKey is nil — they are
+        // always-available nav (matching today's always-present tab bar); the
+        // user removes a tab by un-placing it in the layout editor, not by a
+        // feature toggle. (Home & Settings are additionally pinnable.)
         register(.init(id: .home, label: "Home", icon: "house.fill",
                        kind: .view(.home), defaultSide: .left, isPinnable: true))
         register(.init(id: .shelf, label: "Shelf", icon: "tray.fill",
                        kind: .view(.shelf), defaultSide: .left,
-                       enableKey: .boringShelf,
                        isActiveContext: { !ShelfStateViewModel.shared.isEmpty }))
         register(.init(id: .screenshots, label: "Screenshots", icon: "camera.fill",
-                       kind: .view(.screenshots), defaultSide: .left,
-                       enableKey: .screenshotTrayEnabled))
+                       kind: .view(.screenshots), defaultSide: .left))
         register(.init(id: .claudeCode, label: "Claude", icon: "terminal.fill",
-                       kind: .view(.claudeCode), defaultSide: .left,
-                       enableKey: .enableClaudeCode))
+                       kind: .view(.claudeCode), defaultSide: .left))
 
         // Right-cluster tools / indicators.
         register(.init(id: .pomodoro, label: "Pomodoro", icon: "timer",

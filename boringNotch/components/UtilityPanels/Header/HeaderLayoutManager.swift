@@ -63,20 +63,38 @@ final class HeaderLayoutManager: ObservableObject {
         rightCapacity = capacity(for: .right, screenUUID: uuid)
     }
 
-    /// Clamp an ordered arrangement to the side's live capacity. Pinned items are
-    /// always kept (they survive first); the remaining capacity is filled from the
-    /// non-pinned items in priority (left-to-right) order. Original order preserved.
-    func clamp(_ ids: [PanelID], side: PanelSide, screenUUID: String? = nil) -> [PanelID] {
+    /// The final, render-ready ordered ids for one side: the saved arrangement,
+    /// filtered to enabled panels, capped by the user's MAX (if any), then clamped
+    /// to the live geometric capacity. This is the single resolution shared by the
+    /// header renderer and the layout editor preview.
+    func resolvedOrder(for side: PanelSide, screenUUID: String? = nil) -> [PanelID] {
+        let registry = PanelRegistry.shared
+        let order = side == .left ? Defaults[.headerLeftOrder] : Defaults[.headerRightOrder]
+        let userMax = side == .left ? Defaults[.headerLeftMax] : Defaults[.headerRightMax]
+        let enabled = order.filter { registry.descriptor(for: $0)?.isEnabled ?? false }
         let cap = capacity(for: side, screenUUID: screenUUID)
-        if ids.count <= cap { return ids }
+        let effectiveCap = userMax > 0 ? min(userMax, cap) : cap
+        return clamp(enabled, toCount: effectiveCap)
+    }
+
+    /// Clamp to the side's live geometric capacity (pinned-aware). Convenience.
+    func clamp(_ ids: [PanelID], side: PanelSide, screenUUID: String? = nil) -> [PanelID] {
+        clamp(ids, toCount: capacity(for: side, screenUUID: screenUUID))
+    }
+
+    /// Clamp an ordered arrangement to `count` items. Pinned items are always kept
+    /// (they survive first); the remaining budget is filled from the non-pinned
+    /// items in priority (left-to-right) order. Original order is preserved.
+    func clamp(_ ids: [PanelID], toCount count: Int) -> [PanelID] {
+        if ids.count <= count { return ids }
 
         let registry = PanelRegistry.shared
         let pinned = ids.filter { registry.descriptor(for: $0)?.isPinnable == true }
         let rest = ids.filter { registry.descriptor(for: $0)?.isPinnable != true }
-        let restBudget = max(0, cap - pinned.count)
+        let restBudget = max(0, count - pinned.count)
         let kept = Set(pinned + rest.prefix(restBudget))
-        // If even the pinned items overflow a tiny display, keep the first `cap`.
-        let bounded = kept.count > cap ? Set(ids.filter { kept.contains($0) }.prefix(cap)) : kept
+        // If even the pinned items overflow a tiny display, keep the first `count`.
+        let bounded = kept.count > count ? Set(ids.filter { kept.contains($0) }.prefix(count)) : kept
         return ids.filter { bounded.contains($0) }
     }
 
