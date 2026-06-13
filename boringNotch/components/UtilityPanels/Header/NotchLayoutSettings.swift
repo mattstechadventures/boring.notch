@@ -59,6 +59,13 @@ struct NotchLayoutSettings: View {
     var body: some View {
         Form {
             Section {
+                NotchSlotEditor()
+                    .padding(.vertical, 4)
+            } header: {
+                Text("Arrangement")
+            }
+
+            Section {
                 Picker("When the notch opens", selection: mode) {
                     ForEach(DVMode.allCases) { Text($0.label).tag($0) }
                 }

@@ -98,6 +98,51 @@ final class HeaderLayoutManager: ObservableObject {
         return ids.filter { bounded.contains($0) }
     }
 
+    // MARK: - Editor operations
+
+    /// Enabled panels currently placed on a side, in order. (Order arrays are
+    /// rewritten from this enabled view on edit, so disabled panels drop out of
+    /// the arrangement and reappear in the palette when re-enabled.)
+    func arranged(_ side: PanelSide) -> [PanelID] {
+        let order = side == .left ? Defaults[.headerLeftOrder] : Defaults[.headerRightOrder]
+        return order.filter { PanelRegistry.shared.descriptor(for: $0)?.isEnabled == true }
+    }
+
+    /// Enabled panels not currently placed on either side (the editor palette).
+    var paletteIDs: [PanelID] {
+        let placed = Set(arranged(.left) + arranged(.right))
+        return PanelRegistry.shared.all
+            .filter { $0.isEnabled && !placed.contains($0.id) }
+            .map(\.id)
+    }
+
+    /// Place (or move/reorder) a panel into `side` at `index`. Removes it from
+    /// wherever it currently is first.
+    func place(_ id: PanelID, side: PanelSide, at index: Int) {
+        var left = arranged(.left)
+        var right = arranged(.right)
+        left.removeAll { $0 == id }
+        right.removeAll { $0 == id }
+        if side == .left {
+            left.insert(id, at: min(max(0, index), left.count))
+        } else {
+            right.insert(id, at: min(max(0, index), right.count))
+        }
+        Defaults[.headerLeftOrder] = left
+        Defaults[.headerRightOrder] = right
+    }
+
+    /// Remove a panel from the header (back to the palette). Pinned panels stay.
+    func removeFromHeader(_ id: PanelID) {
+        guard PanelRegistry.shared.descriptor(for: id)?.isPinnable != true else { return }
+        var left = arranged(.left)
+        var right = arranged(.right)
+        left.removeAll { $0 == id }
+        right.removeAll { $0 == id }
+        Defaults[.headerLeftOrder] = left
+        Defaults[.headerRightOrder] = right
+    }
+
     /// Elastic inter-icon gap for `count` items on `side`. When `elastic` is off,
     /// a fixed `minGap`; when on, slack is spread up to `maxGap`. The group is
     /// anchored to the outer edge by the caller (so slack sits next to the notch).
