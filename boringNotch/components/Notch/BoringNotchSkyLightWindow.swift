@@ -109,6 +109,10 @@ class BoringNotchSkyLightWindow: NSPanel {
     
     private var observers: Set<AnyCancellable> = []
     
-    override var canBecomeKey: Bool { false }
+    // Allow the panel to become key so text fields inside the notch (Notes,
+    // Tasks, etc.) can receive keyboard input. Because the window is a
+    // `.nonactivatingPanel`, becoming key does NOT activate the app or steal the
+    // frontmost app's activation — focus returns as soon as you click away.
+    override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 }
