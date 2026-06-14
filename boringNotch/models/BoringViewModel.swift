@@ -190,6 +190,12 @@ class BoringViewModel: NSObject, ObservableObject {
     }
 
     func open() {
+        // Only apply the default-view policy on a real closed -> open transition.
+        // The notch has an .onTapGesture that calls open() on every click, so
+        // re-applying the policy here would yank the user back to the default
+        // view (e.g. Home) whenever they click inside an already-open panel.
+        let wasClosed = (notchState == .closed)
+
         self.notchSize = openNotchSize
         self.notchState = .open
 
@@ -198,7 +204,7 @@ class BoringViewModel: NSObject, ObservableObject {
 
         // Resolve the configured default-view policy (fixed / last-viewed / smart).
         // `.smart` reproduces the prior Focus-Music / Shelf auto-open behaviour.
-        if let view = Defaults[.defaultViewPolicy].resolve() {
+        if wasClosed, let view = Defaults[.defaultViewPolicy].resolve() {
             coordinator.currentView = view
         }
     }
