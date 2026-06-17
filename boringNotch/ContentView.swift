@@ -402,6 +402,8 @@ struct ContentView: View {
                         ClipboardView()
                     case .files:
                         FilesView()
+                    case .macros:
+                        MacrosView()
                     }
                 }
                 .transition(

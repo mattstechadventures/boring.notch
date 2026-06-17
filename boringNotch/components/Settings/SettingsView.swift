@@ -63,6 +63,9 @@ struct SettingsView: View {
                 NavigationLink(value: "Files") {
                     Label("Files", systemImage: "folder")
                 }
+                NavigationLink(value: "Macros") {
+                    Label("Macros", systemImage: "terminal")
+                }
                 NavigationLink(value: "Shelf") {
                     Label("Shelf", systemImage: "books.vertical")
                 }
@@ -120,6 +123,8 @@ struct SettingsView: View {
                     ClipboardSettings()
                 case "Files":
                     FilesSettings()
+                case "Macros":
+                    MacrosSettings()
                 case "Shelf":
                     Shelf()
                 case "Screenshots":

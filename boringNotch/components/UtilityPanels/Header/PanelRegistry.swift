@@ -98,5 +98,8 @@ final class PanelRegistry: ObservableObject {
         register(.init(id: .files, label: "Files", icon: "folder.fill",
                        kind: .view(.files), defaultSide: .right,
                        enableKey: .enableFiles))
+        register(.init(id: .macros, label: "Macros", icon: "terminal",
+                       kind: .view(.macros), defaultSide: .left,
+                       enableKey: .enableMacros))
     }
 }

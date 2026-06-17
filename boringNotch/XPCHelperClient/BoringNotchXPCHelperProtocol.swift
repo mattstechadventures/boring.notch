@@ -20,5 +20,9 @@ import Foundation
     func isScreenBrightnessAvailable(with reply: @escaping (Bool) -> Void)
     func currentScreenBrightness(with reply: @escaping (NSNumber?) -> Void)
     func setScreenBrightness(_ value: Float, with reply: @escaping (Bool) -> Void)
+    // Macro execution. Output is streamed back via the connection's remote
+    // object (MacroRunnerClientProtocol), so these take no reply.
+    func runCommand(runID: String, command: String, workingDirectory: String)
+    func cancelCommand(runID: String)
 }
 

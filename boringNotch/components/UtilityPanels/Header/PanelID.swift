@@ -24,6 +24,7 @@ enum PanelID: String, Codable, CaseIterable, Identifiable, Defaults.Serializable
     case clipboard
     case tasks
     case files
+    case macros
 
     // Legacy right-cluster tools / indicators
     case pomodoro

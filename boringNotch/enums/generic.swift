@@ -35,6 +35,7 @@ public enum NotchViews {
     case tasks
     case clipboard
     case files
+    case macros
 }
 
 // Phase of the Pomodoro cycle. `breakTime` is the "coffee break" period.

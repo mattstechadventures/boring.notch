@@ -11,6 +11,11 @@ final class XPCHelperClient: NSObject {
     private var connection: NSXPCConnection?
     private var lastKnownAuthorization: Bool?
     private var monitoringTask: Task<Void, Never>?
+
+    /// Receives streamed macro output/results from the helper. Held strongly so
+    /// it stays alive for the lifetime of the connection (NSXPC keeps only a
+    /// weak reference to an exported object via the connection).
+    private let macroRunnerClient = MacroRunnerClient()
     
     deinit {
         connection?.invalidate()
@@ -26,21 +31,28 @@ final class XPCHelperClient: NSObject {
         }
         
         let conn = NSXPCConnection(serviceName: serviceName)
-        
+
+        // Vend our callback object so the helper can stream macro output back.
+        // Must be set before resume() so incoming callbacks are handled.
+        conn.exportedInterface = NSXPCInterface(with: (any MacroRunnerClientProtocol).self)
+        conn.exportedObject = macroRunnerClient
+
         conn.interruptionHandler = { [weak self] in
             Task { @MainActor in
                 self?.connection = nil
                 self?.remoteService = nil
+                MacrosViewModel.shared.markRunningAsDisconnected()
             }
         }
-        
+
         conn.invalidationHandler = { [weak self] in
             Task { @MainActor in
                 self?.connection = nil
                 self?.remoteService = nil
+                MacrosViewModel.shared.markRunningAsDisconnected()
             }
         }
-        
+
         conn.resume()
         
         let service = RemoteXPCService<BoringNotchXPCHelperProtocol>(
@@ -239,6 +251,28 @@ final class XPCHelperClient: NSObject {
             }
         } catch {
             return false
+        }
+    }
+
+    // MARK: - Macros
+
+    /// Fire-and-forget: the helper streams output/results back via
+    /// `macroRunnerClient` (MacroRunnerClientProtocol).
+    nonisolated func runMacro(runID: String, command: String, workingDirectory: String) {
+        Task {
+            let service = await MainActor.run { ensureRemoteService() }
+            try? await service.withService { service in
+                service.runCommand(runID: runID, command: command, workingDirectory: workingDirectory)
+            }
+        }
+    }
+
+    nonisolated func cancelMacro(runID: String) {
+        Task {
+            let service = await MainActor.run { ensureRemoteService() }
+            try? await service.withService { service in
+                service.cancelCommand(runID: runID)
+            }
         }
     }
 }

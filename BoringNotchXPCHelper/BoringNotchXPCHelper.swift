@@ -11,7 +11,12 @@ import IOKit
 import CoreGraphics
 
 class BoringNotchXPCHelper: NSObject, BoringNotchXPCHelperProtocol {
-    
+
+    /// Set by the listener in main.swift; used to reach the app's callback object
+    /// so macro output can be streamed back.
+    weak var connection: NSXPCConnection?
+    private let macroRunner = MacroRunner()
+
     @objc func isAccessibilityAuthorized(with reply: @escaping (Bool) -> Void) {
         reply(AXIsProcessTrusted())
     }
@@ -137,6 +142,23 @@ class BoringNotchXPCHelper: NSObject, BoringNotchXPCHelperProtocol {
             return
         }
         reply(false)
+    }
+
+    // MARK: - Macro execution
+
+    @objc func runCommand(runID: String, command: String, workingDirectory: String) {
+        guard let proxy = connection?.remoteObjectProxy as? MacroRunnerClientProtocol else { return }
+        macroRunner.run(runID: runID, command: command, workingDirectory: workingDirectory, client: proxy)
+    }
+
+    @objc func cancelCommand(runID: String) {
+        macroRunner.cancel(runID: runID)
+    }
+
+    /// Stop every running macro. Called when the app's connection drops so we
+    /// don't orphan child processes.
+    func terminateAllMacros() {
+        macroRunner.cancelAll()
     }
 
     // MARK: - Private helpers for DisplayServices / IOKit access

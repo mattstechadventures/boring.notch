@@ -322,6 +322,7 @@ extension Defaults.Keys {
     static let clipboardHistoryLimit = Key<Int>("clipboardHistoryLimit", default: 50)
     static let enableFiles = Key<Bool>("enableFiles", default: true)
     static let filesPinnedFolders = Key<[PinnedFolder]>("filesPinnedFolders", default: [])
+    static let enableMacros = Key<Bool>("enableMacros", default: true)
 
     // MARK: Notch Header Layout
     // Ordered slot arrangement per side (left-to-right = priority for capacity
